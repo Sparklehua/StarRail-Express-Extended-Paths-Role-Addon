@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "pathsrole",
+  "version": "1.0.0",
+  "name": "命途角色 (Paths-Role)",
+  "description": "命途角色附属包",
+  "authors": [
+    "PathsRole Team"
+  ],
+  "contact": {
+    "sources": "https://github.com/"
+  },
+  "license": "GPL-3.0",
+  "icon": "assets/pathsrole/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "org.agmas.pathsrole.PathsRoleMod"
+    ],
+    "client": [
+      "org.agmas.pathsrole.PathsRoleModClient"
+    ],
+    "cardinal-components": [
+      "org.agmas.pathsrole.cca.PathsroleComponents"
+    ]
+  },
+  "mixins": [
+    "pathsrole.mixins.json",
+    "pathsrole.cowboy.mixins.json",
+    "pathsrole.habi_role_port.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.2",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*",
+    "starrailexpress": ">=4.3.0",
+    "cardinal-components-base": ">=6.1.1",
+    "cardinal-components-entity": ">=6.1.1"
+  },
+  "suggests": {
+    "voicechat": "*"
+  },
+  "custom": {
+    "cardinal-components": [
+      "pathsrole:reimu_player",
+      "pathsrole:shipper_player",
+      "pathsrole:bounty_hunter_player"
+    ]
+  }
+}

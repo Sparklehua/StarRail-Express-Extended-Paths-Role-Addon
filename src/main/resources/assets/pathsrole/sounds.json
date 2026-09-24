@@ -1,0 +1,10 @@
+{
+  "music.shipper_moment": {
+    "sounds": [
+      {
+        "name": "pathsrole:music/shipper_moment",
+        "stream": true
+      }
+    ]
+  }
+}

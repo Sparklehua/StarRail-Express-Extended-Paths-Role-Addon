@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "package": "org.agmas.pathsrole.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "TaotiePlayerComponentMixin",
+    "PortRoleEventsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

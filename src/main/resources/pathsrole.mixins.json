@@ -1,0 +1,24 @@
+{
+  "required": false,
+  "package": "org.agmas.pathsrole.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "CupidPlayerComponentMixin",
+    "FlowerDollForceKillImmunityMixin",
+    "PelicanPlayerComponentMixin",
+    "RoleMethodDispatcherMixin",
+    "SREMurderGameModeMixin",
+    "ShipperInvisibleMixin",
+    "ShipperMarkGunRestrictionMixin",
+    "TargetRevolverGunShootMixin"
+  ],
+  "client": [
+    "AhaBlessingHeadScaleMixin",
+    "KeyboardInputMixin",
+    "HudMoodRendererMixin",
+    "ShipperFadeAlphaMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

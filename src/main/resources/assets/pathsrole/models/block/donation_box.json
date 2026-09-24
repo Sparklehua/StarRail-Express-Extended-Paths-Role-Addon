@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "down": "pathsrole:block/donation_box_down",
+    "east": "pathsrole:block/donation_box_side",
+    "north": "pathsrole:block/donation_box_end",
+    "particle": "pathsrole:block/donation_box_down",
+    "south": "pathsrole:block/donation_box_empty",
+    "up": "pathsrole:block/donation_box_up",
+    "west": "pathsrole:block/donation_box_side"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "pathsrole:block/donation_box"
+    }
+  }
+}

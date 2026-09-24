@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "pathsrole:item/hunt_temp_shield"
+  }
+}
