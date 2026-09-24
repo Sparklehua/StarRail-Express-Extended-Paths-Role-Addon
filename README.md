@@ -1,6 +1,6 @@
 # 命途角色 (Paths-Role)
 
-> 星穹列车 (StarRailExpress) 的角色附属包，新增命途角色与玩法。
+> 星穹列车 (StarRailExpress) 的非官方角色附属包，新增命途角色与玩法。
 
 ## 角色
 
