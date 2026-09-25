@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.OptionalInt;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.InteractionHand;

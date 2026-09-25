@@ -14,7 +14,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
-import org.agmas.pathsrole.client.screen.ShrineShopType;
+import org.agmas.pathsrole.ShrineShopType;
 import org.agmas.pathsrole.init.ModRoles;
 import org.agmas.pathsrole.server.ShrinePurchaseTracker;
 import org.jetbrains.annotations.NotNull;

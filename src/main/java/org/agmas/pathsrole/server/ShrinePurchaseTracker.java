@@ -1,6 +1,6 @@
 package org.agmas.pathsrole.server;
 
-import org.agmas.pathsrole.client.screen.ShrineShopType;
+import org.agmas.pathsrole.ShrineShopType;
 
 import java.util.EnumMap;
 import java.util.Map;

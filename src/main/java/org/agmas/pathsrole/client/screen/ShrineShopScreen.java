@@ -14,6 +14,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import org.agmas.pathsrole.ShrineShopType;
 import org.agmas.pathsrole.init.ModItems;
 import org.agmas.pathsrole.network.ShrinePurchasePayload;
 import org.slf4j.Logger;

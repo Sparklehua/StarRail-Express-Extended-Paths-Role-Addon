@@ -1,4 +1,4 @@
-package org.agmas.pathsrole.client.screen;
+package org.agmas.pathsrole;
 
 public enum ShrineShopType {
     KILLER,

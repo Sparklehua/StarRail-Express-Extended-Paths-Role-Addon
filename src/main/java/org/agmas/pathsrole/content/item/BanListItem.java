@@ -22,10 +22,15 @@ public class BanListItem extends Item {
         ItemStack stack = user.getItemInHand(hand);
 
         if (level.isClientSide()) {
-            Minecraft.getInstance().setScreen(new BanListScreen());
+            openBanListScreen();
             return InteractionResultHolder.success(stack);
         }
 
         return InteractionResultHolder.pass(stack);
+    }
+
+    @Environment(EnvType.CLIENT)
+    private void openBanListScreen() {
+        Minecraft.getInstance().setScreen(new BanListScreen());
     }
 }

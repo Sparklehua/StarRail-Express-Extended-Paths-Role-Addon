@@ -3,6 +3,7 @@ package org.agmas.pathsrole.client.screen;
 import io.wifi.starrailexpress.util.ShopEntry;
 import java.util.ArrayList;
 import java.util.List;
+import org.agmas.pathsrole.ShrineShopType;
 import org.agmas.pathsrole.init.ModItems;
 
 public class ShrineFactionShopHandler {

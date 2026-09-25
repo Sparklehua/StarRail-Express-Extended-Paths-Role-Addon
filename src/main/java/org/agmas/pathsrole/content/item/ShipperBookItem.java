@@ -31,21 +31,7 @@ extends Item {
     public InteractionResultHolder<ItemStack> use(Level world, Player user, InteractionHand hand) {
         ItemStack stack = user.getItemInHand(hand);
         if (world.isClientSide()) {
-            EntityHitResult entityHit;
-            HitResult hitResult = Minecraft.getInstance().hitResult;
-            if (hitResult instanceof EntityHitResult && (entityHit = (EntityHitResult)hitResult).getEntity() instanceof Player targetPlayer) {
-                if (user.isShiftKeyDown()) {
-                    clearPlayerData(stack);
-                    user.displayClientMessage(Component.translatable("message.pathsrole.shipper_book.cleared"), true);
-                    return InteractionResultHolder.pass(stack);
-                }
-                if (targetPlayer == user) {
-                    return InteractionResultHolder.pass(stack);
-                }
-                storePlayerName(stack, targetPlayer.getName().getString());
-                return InteractionResultHolder.pass(stack);
-            }
-            this.openBookScreen(stack);
+            handleClientUse(stack, user);
         }
         return InteractionResultHolder.pass(stack);
     }
@@ -82,6 +68,7 @@ extends Item {
         return Component.translatable("item.pathsrole.shipper_book");
     }
 
+    @Environment(EnvType.CLIENT)
     @Override
     public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         super.appendHoverText(stack, context, tooltipComponents, tooltipFlag);
@@ -98,6 +85,25 @@ extends Item {
         tooltipComponents.add(Component.literal(""));
         tooltipComponents.add(Component.translatable("message.pathsrole.shipper.book_hint")
             .withStyle(ChatFormatting.YELLOW, ChatFormatting.ITALIC));
+    }
+
+    @Environment(value=EnvType.CLIENT)
+    private void handleClientUse(ItemStack stack, Player user) {
+            EntityHitResult entityHit;
+            HitResult hitResult = Minecraft.getInstance().hitResult;
+            if (hitResult instanceof EntityHitResult && (entityHit = (EntityHitResult)hitResult).getEntity() instanceof Player targetPlayer) {
+                if (user.isShiftKeyDown()) {
+                    clearPlayerData(stack);
+                    user.displayClientMessage(Component.translatable("message.pathsrole.shipper_book.cleared"), true);
+                    return;
+                }
+                if (targetPlayer == user) {
+                    return;
+                }
+                storePlayerName(stack, targetPlayer.getName().getString());
+                return;
+            }
+            this.openBookScreen(stack);
     }
 
     @Environment(value=EnvType.CLIENT)
