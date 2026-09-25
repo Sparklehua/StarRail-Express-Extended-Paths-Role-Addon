@@ -21,6 +21,7 @@ import org.agmas.pathsrole.content.item.RageShipperItem;
 import org.agmas.pathsrole.content.item.ShipperBookItem;
 import org.agmas.pathsrole.content.item.ShipperPistolItem;
 import org.agmas.pathsrole.content.item.SpellCardItem;
+import org.agmas.pathsrole.content.item.ShipperMomentRevolverItem;
 import org.agmas.pathsrole.content.item.ShrineItem;
 import org.agmas.pathsrole.content.item.TargetRevolverItem;
 import org.agmas.pathsrole.content.item.WantedPosterItem;
@@ -43,6 +44,7 @@ public class ModItems {
     public static final BanListItem BAN_LIST = new BanListItem(new Item.Properties().stacksTo(1));
     public static final PeepingEyeItem PEEPING_EYE = new PeepingEyeItem(new Item.Properties().stacksTo(1));
     public static final FlowerDollItem FLOWER_DOLL = new FlowerDollItem(ModBlocks.FLOWER_DOLL, new Item.Properties().stacksTo(1));
+    public static final ShipperMomentRevolverItem SHIPPER_MOMENT_REVOLVER = new ShipperMomentRevolverItem(new Item.Properties().stacksTo(1));
 
     public static final ResourceKey<CreativeModeTab> FLOWER_ROLE_ITEMS_KEY = ResourceKey.create(
         Registries.CREATIVE_MODE_TAB,
@@ -69,6 +71,7 @@ public class ModItems {
             output.accept(BAN_LIST);
             output.accept(PEEPING_EYE);
             output.accept(FLOWER_DOLL);
+            output.accept(SHIPPER_MOMENT_REVOLVER);
         })
         .build();
 
@@ -89,6 +92,7 @@ public class ModItems {
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "ban_list"), BAN_LIST);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "peeping_eye"), PEEPING_EYE);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "flower_doll"), FLOWER_DOLL);
+        Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "shipper_moment_revolver"), SHIPPER_MOMENT_REVOLVER);
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, FLOWER_ROLE_ITEMS_KEY, FLOWER_ROLE_ITEMS);
     }
 }

@@ -1,6 +1,7 @@
 {
   "replace": false,
   "values": [
-    "pathsrole:target_revolver"
+    "pathsrole:target_revolver",
+    "pathsrole:shipper_moment_revolver"
   ]
 }

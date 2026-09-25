@@ -954,6 +954,31 @@ public class ShipperEvents {
                     }
                 }
             }
+            // 嗑学时刻：随机给两名无辜者发左轮手枪
+            if (wmc != null && shipperComp != null) {
+                java.util.List<ServerPlayer> eligibleInnocents = new ArrayList<>();
+                for (Player p : remainingPlayers) {
+                    if (p == null || p == shipperPlayer) continue;
+                    SRERole role = gameWorld.getRole(p);
+                    if (role == null || !role.isInnocent()) continue;
+                    if (wmc.isModifier(p.getUUID(), ModModifiers.SHIPPER_MARK)) continue;
+                    if (gameWorld.isRole(p, ModRoles.SHIPPER)) continue;
+                    eligibleInnocents.add((ServerPlayer) p);
+                }
+                if (!eligibleInnocents.isEmpty()) {
+                    java.util.Random random = new java.util.Random();
+                    for (int i = 0; i < 2 && !eligibleInnocents.isEmpty(); i++) {
+                        int index = random.nextInt(eligibleInnocents.size());
+                        ServerPlayer innocent = eligibleInnocents.remove(index);
+                        if (innocent == null || ModItems.SHIPPER_MOMENT_REVOLVER == null) continue;
+                        ItemStack revolver = new ItemStack(ModItems.SHIPPER_MOMENT_REVOLVER);
+                        revolver.set(DataComponents.CUSTOM_NAME,
+                                Component.literal("啊哈啊哈的给了你一把枪，天呐，随机给两名无辜者一把枪——这叫公平对决吗，对磕学来说"));
+                        innocent.addItem(revolver);
+                        shipperComp.addMomentRevolverRecipient(innocent.getUUID());
+                    }
+                }
+            }
         }
         shipperPlayer.getInventory().clearContent();
         shipperPlayer.addItem(new ItemStack((net.minecraft.world.level.ItemLike)TMMItems.REVOLVER));

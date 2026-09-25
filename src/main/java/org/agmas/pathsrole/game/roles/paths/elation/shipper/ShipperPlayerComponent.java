@@ -86,6 +86,7 @@ implements RoleComponent {
     private int shipperMomentAbsorbedCount;
     private boolean shipperMomentArmorGiven;
     private int shipperMomentAbsorptionArmorCount;
+    private final List<UUID> momentRevolverRecipients = new ArrayList<>();
     private double lastStillCheckX;
     private double lastStillCheckY;
     private double lastStillCheckZ;
@@ -142,6 +143,7 @@ implements RoleComponent {
         this.lastStillCheckY = 0.0;
         this.lastStillCheckZ = 0.0;
         this.stillTicks = 0;
+        this.momentRevolverRecipients.clear();
         this.cumulativeMoveXZ = 0.0;
         this.cumulativeMoveY = 0.0;
         this.fadeState = FadeState.VISIBLE;
@@ -247,6 +249,7 @@ implements RoleComponent {
                     wmc.addModifier(sp.getUUID(), ModModifiers.AHA_BLESSING);
                 } else {
                     wmc.removeModifier(sp.getUUID(), ModModifiers.AHA_BLESSING);
+                    retrieveMomentRevolvers(sp);
                 }
             }
             // 磕学时刻音乐
@@ -277,6 +280,38 @@ implements RoleComponent {
     public void setBetrayalEndTime(long time) {
         this.betrayalEndTime = time;
         this.sync();
+    }
+
+    public List<UUID> getMomentRevolverRecipients() {
+        return this.momentRevolverRecipients;
+    }
+
+    public void addMomentRevolverRecipient(UUID uuid) {
+        if (uuid != null && !this.momentRevolverRecipients.contains(uuid)) {
+            this.momentRevolverRecipients.add(uuid);
+            this.sync();
+        }
+    }
+
+    public void clearMomentRevolverRecipients() {
+        this.momentRevolverRecipients.clear();
+        this.sync();
+    }
+
+    private void retrieveMomentRevolvers(ServerPlayer shipper) {
+        if (shipper.serverLevel() == null) return;
+        for (UUID recipientId : this.momentRevolverRecipients) {
+            Player recipient = shipper.serverLevel().getPlayerByUUID(recipientId);
+            if (recipient != null && recipient.isAlive() && recipient.getInventory() != null) {
+                for (int i = 0; i < recipient.getInventory().getContainerSize(); i++) {
+                    ItemStack stack = recipient.getInventory().getItem(i);
+                    if (stack.is(ModItems.SHIPPER_MOMENT_REVOLVER)) {
+                        recipient.getInventory().setItem(i, ItemStack.EMPTY);
+                    }
+                }
+            }
+        }
+        this.momentRevolverRecipients.clear();
     }
 
     public boolean isBetrayalActive() {
@@ -718,6 +753,13 @@ implements RoleComponent {
         tag.putInt("StillTicks", this.stillTicks);
         tag.putDouble("CumulativeMoveXZ", this.cumulativeMoveXZ);
         tag.putDouble("CumulativeMoveY", this.cumulativeMoveY);
+        ListTag revolverList = new ListTag();
+        for (UUID uuid : this.momentRevolverRecipients) {
+            CompoundTag uuidTag = new CompoundTag();
+            uuidTag.putUUID("UUID", uuid);
+            revolverList.add(uuidTag);
+        }
+        tag.put("MomentRevolverRecipients", revolverList);
     }
 
     public void readFromSyncNbt(CompoundTag tag, HolderLookup.Provider registryLookup) {
@@ -778,6 +820,14 @@ implements RoleComponent {
         }
         if (tag.contains("CumulativeMoveY")) {
             this.cumulativeMoveY = tag.getDouble("CumulativeMoveY");
+        }
+        this.momentRevolverRecipients.clear();
+        if (tag.contains("MomentRevolverRecipients")) {
+            ListTag revolverList = tag.getList("MomentRevolverRecipients", 10);
+            for (int j = 0; j < revolverList.size(); ++j) {
+                CompoundTag recipientTag = revolverList.getCompound(j);
+                this.momentRevolverRecipients.add(recipientTag.getUUID("UUID"));
+            }
         }
     }
 

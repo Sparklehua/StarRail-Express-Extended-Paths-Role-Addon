@@ -291,10 +291,6 @@ public class ReimuEvents {
         });
         OnShieldBroken.EVENT.register((victim, killer) -> {
             try {
-                PathsRoleMod.LOGGER.info("[灵梦护盾] OnShieldBroken事件触发 victim={} killer={}", 
-                    victim != null ? victim.getName().getString() : "null",
-                    killer != null ? killer.getName().getString() : "null");
-                
                 if (killer == null) {
                     PathsRoleMod.LOGGER.warn("[灵梦护盾] killer为null，跳过处理");
                     return;
@@ -331,7 +327,6 @@ public class ReimuEvents {
                     if (killer instanceof ServerPlayer serverKiller) {
                         try {
                             ServerPlayNetworking.send(serverKiller, new ReimuShieldBreakPacket());
-                            PathsRoleMod.LOGGER.info("[灵梦护盾] 已向破坏者 {} 发送ShieldBreakPacket", serverKiller.getName().getString());
                         } catch (Exception e) {
                             PathsRoleMod.LOGGER.error("[灵梦护盾] 发送ShieldBreakPacket失败", e);
                         }
@@ -353,8 +348,6 @@ public class ReimuEvents {
                     
                     final UUID killerUuid = killerPlayer.getUUID();
                     final String killerName = killerPlayer.getName().getString();
-                    
-                    PathsRoleMod.LOGGER.info("[灵梦护盾] 向破坏者 {} 发送警告提示，将在5秒后显示", killerName);
 
                     final int[] delayCounter = {0};
                     final int targetDelay = 100;
@@ -367,7 +360,6 @@ public class ReimuEvents {
                                     killerPlayer.getServer().getPlayerList().getPlayer(killerUuid) : null;
                                 
                                 if (currentKiller == null || !currentKiller.isAlive()) {
-                                    PathsRoleMod.LOGGER.info("[灵梦护盾] 破坏者已离线或死亡，取消发送警告");
                                     return;
                                 }
 
@@ -379,8 +371,6 @@ public class ReimuEvents {
                                     return;
                                 }
 
-                                PathsRoleMod.LOGGER.info("[灵梦护盾] 5秒已过，发送警告提示给 {}", killerName);
-                                
                                 try {
                                     currentKiller.displayClientMessage(
                                         Component.literal("⚠ ").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
@@ -555,8 +545,6 @@ public class ReimuEvents {
         SREPlayerShopComponent reimuShop;
         Player reimu;
         
-        PathsRoleMod.LOGGER.info("[塞钱箱] 玩家 {} 尝试捐赠", player.getName().getString());
-        
         if (DonationBoxDataManager.isMarked(player.getUUID())) {
             PathsRoleMod.LOGGER.warn("[塞钱箱] {} 已捐赠过，拒绝", player.getName().getString());
             player.displayClientMessage(Component.translatable("message.reimu.already_donated").withStyle(ChatFormatting.RED), true);
@@ -568,8 +556,6 @@ public class ReimuEvents {
             return InteractionResult.FAIL;
         }
         
-        PathsRoleMod.LOGGER.info("[塞钱箱] {} 当前金币: {}", player.getName().getString(), shop.balance);
-        
         if (shop.balance < 40) {
             PathsRoleMod.LOGGER.warn("[塞钱箱] {} 金币不足（需要40，实际{}）", player.getName().getString(), shop.balance);
             player.displayClientMessage(Component.translatable("message.reimu.not_enough_coins_donate").withStyle(ChatFormatting.RED), true);
@@ -579,18 +565,14 @@ public class ReimuEvents {
         shop.sync();
         DonationBoxDataManager.markPlayer(player.getUUID());
         
-        PathsRoleMod.LOGGER.info("[塞钱箱] {} 扣除40金币，剩余: {}", player.getName().getString(), shop.balance);
-        
         if (be.getOwnerUuid() != null && (reimu = player.level().getPlayerByUUID(be.getOwnerUuid())) != null && gameWorld.isRole(reimu, ModRoles.REIMU) && (reimuShop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)reimu)) != null) {
             reimuShop.setBalance(reimuShop.balance + 30);
             reimuShop.sync();
-            PathsRoleMod.LOGGER.info("[塞钱箱] 灵梦 {} 获得30金币", reimu.getName().getString());
         } else {
             PathsRoleMod.LOGGER.warn("[塞钱箱] 灵梦不在线或不是灵梦角色，无法给予金币");
         }
         
         ReimuEvents.grantRandomEffect(player, gameWorld);
-        PathsRoleMod.LOGGER.info("[塞钱箱] {} 成功获得随机效果！", player.getName().getString());
         return InteractionResult.SUCCESS;
     }
 

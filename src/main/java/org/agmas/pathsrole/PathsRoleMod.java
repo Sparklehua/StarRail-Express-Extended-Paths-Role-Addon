@@ -26,7 +26,7 @@ import org.agmas.pathsrole.command.HiddenRoleCommand;
 import org.agmas.pathsrole.command.MimiCommand;
 import org.agmas.pathsrole.command.ShrineExportCommand;
 import org.agmas.pathsrole.command.ShrineGhostCommand;
-import org.agmas.pathsrole.command.TestCommand;
+
 import org.agmas.pathsrole.content.block.DonationBoxTickHandler;
 import org.agmas.pathsrole.content.entity.FlowerDollExplosionManager;
 import org.agmas.pathsrole.content.item.BroomItem;
@@ -104,7 +104,7 @@ implements ModInitializer {
         MimiCommand.register();
         ShrineExportCommand.register();
         ShrineGhostCommand.register();
-        TestCommand.register();
+        
         DonationBoxTickHandler.register();
         ShrineManager.init();
         PeepingEyeEvents.init();

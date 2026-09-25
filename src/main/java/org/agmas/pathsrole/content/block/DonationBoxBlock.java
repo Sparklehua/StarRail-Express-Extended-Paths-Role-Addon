@@ -22,7 +22,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import org.agmas.pathsrole.PathsRoleMod;
+
 import org.agmas.pathsrole.cca.PathsroleComponents;
 import org.agmas.pathsrole.game.roles.paths.equilibrium.reimu.ReimuEvents;
 import org.agmas.pathsrole.game.roles.paths.equilibrium.reimu.ReimuPlayerComponent;
@@ -127,7 +127,6 @@ implements EntityBlock {
                 if (comp != null) {
                     comp.incrementDonationBoxCount();
                 }
-                PathsRoleMod.LOGGER.info("[赛钱箱] 玩家 {} 在 {} 放置了赛钱箱，当前数量: {}", new Object[]{player.getName().getString(), pos, comp != null ? comp.getDonationBoxCount() : 0});
             }
         }
     }

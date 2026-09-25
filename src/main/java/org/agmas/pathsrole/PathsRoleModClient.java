@@ -1,6 +1,7 @@
 package org.agmas.pathsrole;
 
 import io.wifi.starrailexpress.api.SRERole;
+import io.wifi.starrailexpress.cca.SREGameWorldComponent;
 import io.wifi.starrailexpress.client.SREClient;
 import io.wifi.starrailexpress.event.AllowItemShowInHand;
 import io.wifi.starrailexpress.event.client.CommonInstinctEvents;
@@ -58,6 +59,10 @@ import org.agmas.pathsrole.network.MimiResponsePacket;
 import org.agmas.pathsrole.network.BanListResponsePayload;
 import org.agmas.pathsrole.network.PlayerVisibilityStatePayload;
 import org.agmas.pathsrole.client.screen.MimiScreen;
+import org.agmas.pathsrole.client.screen.ShrineShopScreen;
+import org.agmas.pathsrole.ShrineShopType;
+import org.agmas.pathsrole.content.block.ShrineDonationBoxBlock;
+import org.agmas.noellesroles.game.roles.innocence.fool.ShrineSequence;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -77,6 +82,56 @@ implements ClientModInitializer {
     }
 
     public void onInitializeClient() {
+        ShrineDonationBoxBlock.setScreenOpener(level -> {
+            Minecraft.getInstance().execute(() -> {
+                try {
+                    SREGameWorldComponent gameWorld = SREGameWorldComponent.KEY.get(level);
+                    if (gameWorld == null) return;
+
+                    Player clientPlayer = Minecraft.getInstance().player;
+                    if (clientPlayer == null) return;
+
+                    if (ShrineSequence.isPlayerBanned(clientPlayer.getUUID())) {
+                        clientPlayer.displayClientMessage(
+                                Component.translatable("message.pathsrole.ban_list.banned")
+                                        .withStyle(ChatFormatting.RED), true);
+                        return;
+                    }
+
+                    SRERole role = gameWorld.getRole(clientPlayer);
+                    if (role == null) {
+                        clientPlayer.displayClientMessage(
+                                Component.translatable("message.pathsrole.shrine_shop.no_role")
+                                        .withStyle(ChatFormatting.RED), true);
+                        return;
+                    }
+
+                    boolean isReimu = gameWorld.isRole(clientPlayer, ModRoles.REIMU);
+                    ShrineShopType shopType;
+                    if (isReimu) {
+                        shopType = ShrineShopType.KILLER;
+                    } else if (role.canUseKiller()) {
+                        shopType = ShrineShopType.KILLER;
+                    } else if (role.isNeutralForKiller()) {
+                        shopType = ShrineShopType.NEUTRAL_KILLER;
+                    } else if (role.isInnocent()) {
+                        shopType = ShrineShopType.INNOCENT;
+                    } else if (role.isNeutrals()) {
+                        shopType = ShrineShopType.SPECIAL_NEUTRAL;
+                    } else {
+                        clientPlayer.displayClientMessage(
+                                Component.translatable("message.pathsrole.shrine_shop.not_allowed")
+                                        .withStyle(ChatFormatting.RED), true);
+                        return;
+                    }
+
+                    Minecraft.getInstance().setScreen(new ShrineShopScreen(shopType, isReimu));
+                } catch (Exception e) {
+                    PathsRoleMod.LOGGER.error("[神社赛钱箱] 打开商店界面失败", e);
+                }
+            });
+        });
+
         ClientPlayNetworking.registerGlobalReceiver(ReimuShieldBreakPacket.ID, (payload, context) -> {
             context.client().execute(() -> ReimuShieldBreakNotifier.markShouldSkip());
         });
