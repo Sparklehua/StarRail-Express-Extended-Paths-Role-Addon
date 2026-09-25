@@ -4,6 +4,7 @@ import io.wifi.starrailexpress.cca.SREGameWorldComponent;
 import io.wifi.starrailexpress.cca.SREPlayerShopComponent;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.codec.StreamCodec;
@@ -14,6 +15,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.agmas.pathsrole.ShrineShopType;
 import org.agmas.pathsrole.init.ModRoles;
 import org.agmas.pathsrole.server.ShrinePurchaseTracker;
@@ -55,13 +57,34 @@ public record ShrinePurchasePayload(ItemStack item, int price, ShrineShopType sh
         }
 
         context.server().execute(() -> {
-            // === 阵营购买次数检查 ===
-            if (!ShrinePurchaseTracker.hasRemaining(shopType)) {
-                buyer.displayClientMessage(
-                        Component.translatable("message.pathsrole.shrine_shop.no_remaining_purchases")
-                                .withStyle(ChatFormatting.RED),
-                        true);
-                return;
+            // === 特殊中立阵营：per-player检查 ===
+            if (shopType == ShrineShopType.SPECIAL_NEUTRAL) {
+                if (!ShrinePurchaseTracker.canPlayerPurchase(buyer.getUUID())) {
+                    buyer.displayClientMessage(
+                            Component.translatable("message.pathsrole.shrine_shop.no_remaining_purchases")
+                                    .withStyle(ChatFormatting.RED),
+                            true);
+                    return;
+                }
+
+                boolean isPotionItem = item.is(Items.POTION)
+                        && item.has(DataComponents.POTION_CONTENTS);
+                if (isPotionItem && !ShrinePurchaseTracker.isSpecialNeutralPotionAvailable(buyer.getUUID())) {
+                    buyer.displayClientMessage(
+                            Component.literal("本局药水已被购买，无法再购买隐身药水或速度药水！")
+                                    .withStyle(ChatFormatting.RED),
+                            true);
+                    return;
+                }
+            } else {
+                // === 普通阵营购买次数检查 ===
+                if (!ShrinePurchaseTracker.hasRemaining(shopType)) {
+                    buyer.displayClientMessage(
+                            Component.translatable("message.pathsrole.shrine_shop.no_remaining_purchases")
+                                    .withStyle(ChatFormatting.RED),
+                            true);
+                    return;
+                }
             }
 
             SREPlayerShopComponent shop = SREPlayerShopComponent.KEY.get(buyer);
@@ -77,9 +100,21 @@ public record ShrinePurchasePayload(ItemStack item, int price, ShrineShopType sh
                 return;
             }
 
-            // 扣除一次阵营购买次数
-            ShrinePurchaseTracker.consume(shopType);
-            int remaining = ShrinePurchaseTracker.getRemaining(shopType);
+            // 扣除购买次数
+            if (shopType == ShrineShopType.SPECIAL_NEUTRAL) {
+                ShrinePurchaseTracker.recordPlayerPurchase(buyer.getUUID());
+
+                boolean isPotionItem = item.is(Items.POTION)
+                        && item.has(DataComponents.POTION_CONTENTS);
+                if (isPotionItem) {
+                    ShrinePurchaseTracker.markSpecialNeutralPotionPurchased(buyer.getUUID());
+                }
+            } else {
+                ShrinePurchaseTracker.consume(shopType);
+            }
+            int remaining = shopType == ShrineShopType.SPECIAL_NEUTRAL
+                    ? ShrinePurchaseTracker.getPlayerRemaining(buyer.getUUID())
+                    : ShrinePurchaseTracker.getRemaining(shopType);
 
             shop.setBalance(shop.balance - price);
             shop.sync();
@@ -99,9 +134,13 @@ public record ShrinePurchasePayload(ItemStack item, int price, ShrineShopType sh
                     false);
 
             // 提示该阵营剩余次数
+            int remainingMax = shopType == ShrineShopType.SPECIAL_NEUTRAL
+                    ? ShrinePurchaseTracker.getSpecialNeutralMaxPerPlayer()
+                    : ShrinePurchaseTracker.getMaxPurchases();
+
             buyer.displayClientMessage(
                     Component.translatable("message.pathsrole.shrine_shop.remaining_count",
-                            remaining, ShrinePurchaseTracker.getMaxPurchases())
+                            remaining, remainingMax)
                             .withStyle(ChatFormatting.AQUA),
                     true);
 

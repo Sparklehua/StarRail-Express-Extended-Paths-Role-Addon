@@ -63,6 +63,7 @@ public class ModModifiers {
                 long now = System.currentTimeMillis();
                 if (lastTime != null && now - lastTime < 60000L) continue;
                 SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)player);
+                if (shop == null) continue;
                 int newBalance = Math.max(0, shop.balance - 10);
                 shop.setBalance(newBalance);
                 shop.sync();

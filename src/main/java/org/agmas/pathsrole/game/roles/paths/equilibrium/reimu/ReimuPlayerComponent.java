@@ -306,6 +306,10 @@ ClientTickingComponent {
             return;
         }
         SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)this.player);
+        if (shop == null) {
+            this.stabilizeCancel();
+            return;
+        }
         int target = this.getTargetCoins();
         boolean coinsEnough = shop.balance >= target;
         int civilianCount = 0;
@@ -343,7 +347,7 @@ ClientTickingComponent {
             return;
         }
         SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)this.player);
-        if (shop.balance < this.getTargetCoins()) {
+        if (shop == null || shop.balance < this.getTargetCoins()) {
             this.stabilizeCancel();
             return;
         }

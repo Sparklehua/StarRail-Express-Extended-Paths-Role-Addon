@@ -224,7 +224,10 @@ public class BountyHunterEvents {
         ModdedRoleAssigned.EVENT.register((player, role) -> {
             if (role.identifier().equals(ModRoles.BOUNTY_HUNTER_ID)) {
                 player.addItem(TMMItems.REVOLVER.getDefaultInstance());
-                SREPlayerShopComponent.KEY.get(player).setBalance(100);
+                SREPlayerShopComponent shop = SREPlayerShopComponent.KEY.get(player);
+                if (shop != null) {
+                    shop.setBalance(100);
+                }
             }
         });
 

@@ -171,6 +171,7 @@ implements ClientModInitializer {
                 org.agmas.pathsrole.client.screen.ShrineShopScreen.NEUTRAL_KILLER_REMAINING = payload.neutralKillerRemaining();
                 org.agmas.pathsrole.client.screen.ShrineShopScreen.SPECIAL_NEUTRAL_REMAINING = payload.specialNeutralRemaining();
                 org.agmas.pathsrole.client.screen.ShrineShopScreen.INNOCENT_REMAINING = payload.innocentRemaining();
+                org.agmas.pathsrole.client.screen.ShrineShopScreen.SPECIAL_NEUTRAL_POTION_PURCHASED = payload.specialNeutralPotionPurchased();
             });
         });
 

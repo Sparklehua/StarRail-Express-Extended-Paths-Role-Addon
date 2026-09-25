@@ -70,6 +70,7 @@ import org.agmas.pathsrole.init.ModItems;
 import org.agmas.pathsrole.init.ModModifiers;
 import org.agmas.pathsrole.init.ModRoles;
 import org.agmas.pathsrole.network.ReimuShieldBreakPacket;
+import org.agmas.pathsrole.server.ShrinePurchaseTracker;
 import pro.fazeclan.river.stupid_express.StupidExpress;
 import pro.fazeclan.river.stupid_express.constants.SEModifiers;
 import pro.fazeclan.river.stupid_express.constants.SERoles;
@@ -98,6 +99,7 @@ public class ReimuEvents {
             }
         });
         GameInitializeEvent.EVENT.register((level, gameWorldComponent, readyPlayerList) -> {
+            ShrinePurchaseTracker.reset();
             DonationBoxDataManager.clearMarks();
             for (ServerPlayer sp : level.players()) {
                 ReimuPlayerComponent comp = PathsroleComponents.getReimuComponent((Player)sp);

@@ -34,7 +34,7 @@ public class PeepingEyeEvents {
                 for (ServerPlayer other : server.getPlayerList().getPlayers()) {
                     if (other == player) continue;
                     SREArmorPlayerComponent armor = SREArmorPlayerComponent.KEY.get(other);
-                    if (armor.getArmor() > 0) {
+                    if (armor != null && armor.getArmor() > 0) {
                         other.addEffect(new MobEffectInstance(
                                 ModEffects.BACKWORLD_OUTLINE, VISION_DURATION, 0, false, false, false
                         ));

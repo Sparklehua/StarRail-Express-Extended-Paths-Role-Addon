@@ -14,13 +14,12 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.projectile.ProjectileUtil;
 import org.agmas.pathsrole.init.ModRoles;
 
 import java.util.List;
+import java.util.Optional;
 
 public class PeepingEyeItem extends Item {
     public PeepingEyeItem(Properties settings) {
@@ -66,22 +65,31 @@ public class PeepingEyeItem extends Item {
 
         SREGameWorldComponent gameWorld = SREGameWorldComponent.KEY.get(level);
 
-        EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(
-                level,
-                serverPlayer,
-                eyePos,
-                endPos,
-                AABB.ofSize(eyePos, 256, 256, 256).inflate(256),
-                entity -> entity instanceof ServerPlayer target &&
-                        target != serverPlayer &&
-                        target.isAlive() &&
-                        target.level() == level &&
-                        (gameWorld == null || !gameWorld.isRole(target, ModRoles.REIMU)) &&
-                        SREArmorPlayerComponent.KEY.get(target).getArmor() > 0,
-                256 * 256
-        );
+        // 手动射线检测，绕过 ProjectileUtilMixin 对最后参数的误用
+        ServerPlayer closestTarget = null;
+        double closestDist = Double.MAX_VALUE;
 
-        if (entityHit != null && entityHit.getEntity() instanceof ServerPlayer target) {
+        for (ServerPlayer candidate : serverPlayer.getServer().getPlayerList().getPlayers()) {
+            if (candidate == serverPlayer) continue;
+            if (!candidate.isAlive()) continue;
+            if (candidate.level() != level) continue;
+            if (gameWorld != null && gameWorld.isRole(candidate, ModRoles.REIMU)) continue;
+            SREArmorPlayerComponent candidateArmor = SREArmorPlayerComponent.KEY.get(candidate);
+            if (candidateArmor == null || candidateArmor.getArmor() <= 0) continue;
+
+            AABB hitbox = candidate.getBoundingBox().inflate(0.3);
+            Optional<Vec3> hit = hitbox.clip(eyePos, endPos);
+            if (hit.isPresent()) {
+                double dist = eyePos.distanceToSqr(hit.get());
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestTarget = candidate;
+                }
+            }
+        }
+
+        if (closestTarget != null) {
+            ServerPlayer target = closestTarget;
             // 额外空值防护：确保目标存活
             if (!target.isAlive()) {
                 return InteractionResultHolder.fail(stack);

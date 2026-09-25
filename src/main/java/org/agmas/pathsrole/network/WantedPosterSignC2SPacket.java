@@ -44,7 +44,7 @@ public record WantedPosterSignC2SPacket(UUID targetUuid) implements CustomPacket
         ServerPlayer signer = context.player();
         context.server().execute(() -> {
             SREGameWorldComponent gameWorld = SREGameWorldComponent.KEY.get(signer.level());
-            if (!gameWorld.isRunning() || !GameUtils.isPlayerAliveAndSurvivalIgnoreShitSplit(signer)) {
+            if (gameWorld == null || !gameWorld.isRunning() || !GameUtils.isPlayerAliveAndSurvivalIgnoreShitSplit(signer)) {
                 return;
             }
             if (gameWorld.isRole(signer, ModRoles.BOUNTY_HUNTER)) {
@@ -89,7 +89,7 @@ public record WantedPosterSignC2SPacket(UUID targetUuid) implements CustomPacket
             }
 
             SREPlayerShopComponent shop = SREPlayerShopComponent.KEY.get(signer);
-            if (shop.balance < 50) {
+            if (shop == null || shop.balance < 50) {
                 signer.displayClientMessage(
                         Component.translatable("message.pathsrole.bounty_hunter.not_enough_coins", 50)
                                 .withStyle(ChatFormatting.RED),

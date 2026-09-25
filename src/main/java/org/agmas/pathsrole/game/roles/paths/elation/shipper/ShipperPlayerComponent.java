@@ -131,7 +131,7 @@ implements RoleComponent {
         this.rageActive = false;
         this.rageVictimUUID = null;
         this.observationCooldownEnd = 0L;
-        this.observationActive = true;
+        this.observationActive = false;
         this.pendingBetrayalKiller = null;
         this.hasEverBound = false;
         this.pairingTime = 0L;

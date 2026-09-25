@@ -77,8 +77,9 @@ public class ShrineShopScreen extends Screen {
     /** 各阵营剩余购买次数（由服务器同步） */
     public static int KILLER_REMAINING = 3;
     public static int NEUTRAL_KILLER_REMAINING = 3;
-    public static int SPECIAL_NEUTRAL_REMAINING = 3;
+    public static int SPECIAL_NEUTRAL_REMAINING = 2;
     public static int INNOCENT_REMAINING = 3;
+    public static boolean SPECIAL_NEUTRAL_POTION_PURCHASED = false;
     
     private static final Set<Item> REIMU_PURCHASABLE = Set.of(
         ModItems.BROOM
@@ -190,14 +191,20 @@ public class ShrineShopScreen extends Screen {
         if (safeFont == null) return;
         
         int remaining = getCurrentRemaining();
-        String text = "\u00a7e该阵营剩余购买次数：\u00a76" + remaining + "\u00a7e/\u00a763";
-        
+        int maxPurchases = (currentType == ShrineShopType.SPECIAL_NEUTRAL) ? 2 : 3;
+        String text = "\u00a7e该阵营剩余购买次数：\u00a76" + remaining + "\u00a7e/\u00a76" + maxPurchases;
+
         // 定位在最左下角卡片（第二行第一列）的正下方
         int cardBottomY = startY + CARD_START_Y + 2 * CARD_HEIGHT + CARD_GAP_Y;
         int textX = startX + CARD_START_X;
         int textY = cardBottomY + 3;
-        
+
         guiGraphics.drawString(safeFont, text, textX, textY, 0xFFFFAA00, true);
+
+        if (currentType == ShrineShopType.SPECIAL_NEUTRAL && SPECIAL_NEUTRAL_POTION_PURCHASED) {
+            String potionHint = "\u00a7c\u00a7l\u836f\u6c34\u5df2\u552e\u7f44\uff08\u968f\u673a\u53d8\u6362\u4e2d\u7684\u836f\u6c34\u4ecd\u53ef\u4f7f\u7528\uff09";
+            guiGraphics.drawString(safeFont, potionHint, textX, textY + 12, 0xFFFF5555, false);
+        }
     }
     
     private int getCurrentRemaining() {
@@ -390,6 +397,11 @@ public class ShrineShopScreen extends Screen {
         }
         if (this.isReimu) {
             if (entry.stack() == null || !REIMU_PURCHASABLE.contains(entry.stack().getItem())) {
+                return false;
+            }
+        }
+        if (this.currentType == ShrineShopType.SPECIAL_NEUTRAL && SPECIAL_NEUTRAL_POTION_PURCHASED) {
+            if (entry.stack() != null && entry.stack().is(net.minecraft.world.item.Items.POTION)) {
                 return false;
             }
         }

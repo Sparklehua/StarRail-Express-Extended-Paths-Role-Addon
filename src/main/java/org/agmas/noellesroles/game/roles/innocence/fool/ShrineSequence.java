@@ -282,19 +282,18 @@ public class ShrineSequence {
             ));
 
             SREGameWorldComponent gameWorld = SREGameWorldComponent.KEY.get(pl.level());
-            if (gameWorld != null && gameWorld.isRole(pl, ModRoles.REIMU)) {
-                count++;
-                continue;
+            boolean isReimu = gameWorld != null && gameWorld.isRole(pl, ModRoles.REIMU);
+
+            if (!isReimu) {
+                pl.addEffect(new MobEffectInstance(ModEffects.VOICE_SILENCE,
+                        (int) ACTIVE_TICKS, 0, false, false, false));
+                pl.addEffect(new MobEffectInstance(ModEffects.CHAT_BAN,
+                        (int) ACTIVE_TICKS, 0, false, false, false));
+                pl.addEffect(new MobEffectInstance(ModEffects.SKILL_BANED,
+                        (int) ACTIVE_TICKS, 0, false, false, true));
+
+                modifierCca.addModifier(pl.getUUID(), SEModifiers.JEB_);
             }
-
-            pl.addEffect(new MobEffectInstance(ModEffects.VOICE_SILENCE,
-                    (int) ACTIVE_TICKS, 0, false, false, false));
-            pl.addEffect(new MobEffectInstance(ModEffects.CHAT_BAN,
-                    (int) ACTIVE_TICKS, 0, false, false, false));
-            pl.addEffect(new MobEffectInstance(ModEffects.SKILL_BANED,
-                    (int) ACTIVE_TICKS, 0, false, false, true));
-
-            modifierCca.addModifier(pl.getUUID(), SEModifiers.JEB_);
 
             protectedShrinePlayers.add(pl.getUUID());
             count++;

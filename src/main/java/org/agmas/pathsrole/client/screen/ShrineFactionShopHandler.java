@@ -43,7 +43,7 @@ public class ShrineFactionShopHandler {
         // 毒药瓶 100
         entries.add(new ShopEntry(io.wifi.starrailexpress.index.TMMItems.POISON_VIAL.getDefaultInstance(), 100, ShopEntry.Type.TOOL));
         // 窥视之眼 100
-        entries.add(new ShopEntry(ModItems.PEEPING_EYE.getDefaultInstance(), 100, ShopEntry.Type.TOOL));
+        entries.add(new ShopEntry(ModItems.PEEPING_EYE.getDefaultInstance(), 40, ShopEntry.Type.TOOL));
         return entries;
     }
 
