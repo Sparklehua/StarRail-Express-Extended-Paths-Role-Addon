@@ -232,8 +232,15 @@ implements ClientModInitializer {
                     return TrueFalseAndCustomResult.disallow();
                 }
                 if (SREClient.gameComponent != null && SREClient.gameComponent.isRole(targetPlayer, ModRoles.SHIPPER)) {
+                    SRERole selfRole = SREClient.gameComponent.getRole(self);
+                    boolean isKiller = selfRole != null && selfRole.isKillerTeam();
+
                     ShipperPlayerComponent shipperComp = ShipperPlayerComponent.KEY.get((Object)targetPlayer);
                     if (shipperComp != null && shipperComp.isObservationActive() && shipperComp.getInvisibilityAlpha() <= 0.01f) {
+                        return TrueFalseAndCustomResult.disallow();
+                    }
+
+                    if (!isKiller) {
                         return TrueFalseAndCustomResult.disallow();
                     }
                     return TrueFalseAndCustomResult.pass();

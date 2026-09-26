@@ -100,6 +100,7 @@ implements RoleComponent {
     public static final double RESTORE_DISTANCE_Y = 0.5;
     public static final float RESTORE_SPEED_PER_TICK = 0.05f;
     private float invisibilityAlpha = 1.0f;
+    private int momentMusicTimer = 0;
     
     private enum FadeState {
         VISIBLE,
@@ -259,13 +260,15 @@ implements RoleComponent {
                 if (music.getLocation() == null) return;
                 if (active) {
                     sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
-                            music, SoundSource.RECORDS, 0.7F, 1.0F);
+                            music, SoundSource.RECORDS, 1.4F, 1.0F);
+                    this.momentMusicTimer = 140;
                 } else {
                     for (ServerPlayer target : sp.serverLevel().players()) {
                         if (target == null || target.connection == null) continue;
                         target.connection.send(new ClientboundStopSoundPacket(
                                 music.getLocation(), SoundSource.RECORDS));
                     }
+                    this.momentMusicTimer = -1;
                 }
             } catch (Exception e) {
                 PathsRoleMod.LOGGER.error("[ShipperMoment] 音乐播放/停止出错", e);
@@ -609,6 +612,23 @@ implements RoleComponent {
                 this.clearRage();
             }
             }
+        if (this.shipperMomentActive && this.momentMusicTimer >= 0) {
+            if (this.momentMusicTimer <= 0) {
+                try {
+                    if (SHIPPER_MOMENT_MUSIC != null && SHIPPER_MOMENT_MUSIC.value() != null) {
+                        SoundEvent music = SHIPPER_MOMENT_MUSIC.value();
+                        if (music.getLocation() != null) {
+                            sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
+                                    music, SoundSource.RECORDS, 1.4F, 1.0F);
+                        }
+                    }
+                } catch (Exception e) {
+                    PathsRoleMod.LOGGER.error("[ShipperMoment] 音乐循环播放出错", e);
+                }
+                this.momentMusicTimer = 140;
+            }
+            this.momentMusicTimer--;
+        }
         if (!this.observationActive) {
             if (this.fadeState != FadeState.VISIBLE || this.invisibilityAlpha < 1.0f) {
                 this.forceRestoreVisible();
