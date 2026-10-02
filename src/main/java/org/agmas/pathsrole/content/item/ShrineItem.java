@@ -15,8 +15,16 @@ import org.agmas.noellesroles.game.roles.innocence.fool.ShrineSequence;
 import org.agmas.pathsrole.init.ModRoles;
 
 public class ShrineItem extends Item {
+
+    private static final long REIMU_COOLDOWN_MS = 5_000;
+    private static long reimuCooldownEnd = 0;
+
     public ShrineItem(Item.Properties properties) {
         super(properties);
+    }
+
+    public static void resetReimuTracking() {
+        reimuCooldownEnd = 0;
     }
 
     @Override
@@ -36,7 +44,7 @@ public class ShrineItem extends Item {
         }
 
         SREGameWorldComponent game = SREGameWorldComponent.KEY.get(serverPlayer.level());
-        if (!game.isRole(serverPlayer, ModRoles.REIMU)) {
+        if (game == null || !game.isRole(serverPlayer, ModRoles.REIMU)) {
             return InteractionResultHolder.pass(stack);
         }
 
@@ -47,9 +55,27 @@ public class ShrineItem extends Item {
         }
 
         if (phase == ShrineSequence.Phase.ACTIVE) {
-            if (ShrineSequence.isInShrineBounds(serverPlayer)) {
-                ShrineManager.leaveShrine(serverPlayer);
+            long now = System.currentTimeMillis();
+
+            if (reimuCooldownEnd > 0 && now < reimuCooldownEnd) {
+                long remaining = (reimuCooldownEnd - now) / 1000;
+                serverPlayer.displayClientMessage(Component.literal("§c冷却中，剩余 " + remaining + " 秒"), true);
+                return InteractionResultHolder.success(stack);
             }
+
+            boolean inShrine = ShrineManager.isInShrine(serverPlayer);
+
+            if (inShrine) {
+                ShrineSequence.removeShrineEntranceEffects(serverPlayer);
+                ShrineManager.leaveShrine(serverPlayer);
+                reimuCooldownEnd = now + REIMU_COOLDOWN_MS;
+                serverPlayer.displayClientMessage(Component.literal("§a已离开神社"), true);
+            } else {
+                ShrineSequence.applyShrineEntranceEffects(serverPlayer);
+                ShrineManager.enterShrine(serverPlayer);
+                serverPlayer.displayClientMessage(Component.literal("§a已进入神社"), true);
+            }
+
             return InteractionResultHolder.success(stack);
         }
 
@@ -66,10 +92,10 @@ public class ShrineItem extends Item {
 
         Component title = Component.literal("§d神社将在10s后降临");
         for (ServerPlayer pl : serverPlayer.getServer().getPlayerList().getPlayers()) {
-            pl.connection.send(new ClientboundSetTitleTextPacket(title));
+            if (pl != null && pl.connection != null) {
+                pl.connection.send(new ClientboundSetTitleTextPacket(title));
+            }
         }
-
-        stack.consume(1, serverPlayer);
 
         return InteractionResultHolder.success(stack);
     }

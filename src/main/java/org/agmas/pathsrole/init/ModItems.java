@@ -24,6 +24,7 @@ import org.agmas.pathsrole.content.item.ShipperPistolItem;
 import org.agmas.pathsrole.content.item.SpellCardItem;
 import org.agmas.pathsrole.content.item.CaneItem;
 import org.agmas.pathsrole.content.item.ShipperMomentRevolverItem;
+import org.agmas.pathsrole.content.item.ShrineEntranceItem;
 import org.agmas.pathsrole.content.item.ShrineItem;
 import org.agmas.pathsrole.content.item.TargetRevolverItem;
 import org.agmas.pathsrole.content.item.WantedPosterItem;
@@ -42,6 +43,7 @@ public class ModItems {
     public static final AsIWriteItem AS_I_WRITE = new AsIWriteItem(new Item.Properties().stacksTo(1));
     public static final SpellCardItem REIMU_SPELL_CARD = new SpellCardItem(new Item.Properties().stacksTo(1));
     public static final ShrineItem SHRINE = new ShrineItem(new Item.Properties().stacksTo(1));
+    public static final ShrineEntranceItem SHRINE_ENTRANCE = new ShrineEntranceItem(new Item.Properties().stacksTo(1));
     public static final BroomItem BROOM = new BroomItem(new Item.Properties().durability(3));
     public static final BanListItem BAN_LIST = new BanListItem(new Item.Properties().stacksTo(1));
     public static final PeepingEyeItem PEEPING_EYE = new PeepingEyeItem(new Item.Properties().stacksTo(1));
@@ -97,6 +99,7 @@ public class ModItems {
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "as_i_write"), AS_I_WRITE);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "reimu_spell_card"), REIMU_SPELL_CARD);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "shrine"), SHRINE);
+        Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "shrine_entrance"), SHRINE_ENTRANCE);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "broom"), BROOM);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "ban_list"), BAN_LIST);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "peeping_eye"), PEEPING_EYE);

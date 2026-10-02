@@ -66,7 +66,7 @@ public class ShrineManager {
         return false;
     }
 
-    static void ensureShrineSceneBuilt(ServerLevel level) {
+    public static void ensureShrineSceneBuilt(ServerLevel level) {
         ensureShrineScene(level);
     }
 

@@ -5,7 +5,10 @@ import io.wifi.starrailexpress.cca.SREGameWorldComponent;
 import io.wifi.starrailexpress.cca.SREPlayerPoisonComponent;
 import io.wifi.starrailexpress.cca.SREPlayerPsychoComponent;
 import io.wifi.starrailexpress.cca.SREPlayerShopComponent;
+import io.wifi.starrailexpress.cca.PlayerBodyEntityComponent;
+import io.wifi.starrailexpress.content.entity.PlayerBodyEntity;
 import io.wifi.starrailexpress.event.AllowPlayerDeath;
+import io.wifi.starrailexpress.event.OnDeathWithBody;
 import io.wifi.starrailexpress.event.OnGameEnd;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
@@ -19,11 +22,14 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 import org.agmas.harpymodloader.component.WorldModifierComponent;
 import org.agmas.noellesroles.game.roles.neutral.cuckoo.CuckooEggData;
 import org.agmas.noellesroles.init.ModEffects;
 import org.agmas.pathsrole.PathsRoleMod;
+import org.agmas.pathsrole.content.item.ShrineEntranceItem;
+import org.agmas.pathsrole.content.item.ShrineItem;
 import org.agmas.pathsrole.init.ModItems;
 import org.agmas.pathsrole.init.ModRoles;
 import org.agmas.pathsrole.network.ShrineGhostStartPayload;
@@ -46,10 +52,8 @@ public class ShrineSequence {
     private static final long COOLDOWN_TICKS = 200 * 20;
     private static final long ACTIVE_TICKS = 60 * 20;
     private static final long GHOST_FALL_MS = 10_000;
-    private static final double SKY_OFFSET = 120.0;
 
     static Phase phase = Phase.IDLE;
-    private static long ghostStartMs = 0;
     static long phaseEndTick = 0;
     public static long savedDayTime = -1;
     public static Vec3 ghostTarget = null;
@@ -119,6 +123,20 @@ public class ShrineSequence {
             if (isShrineProtected(player.getUUID())) return false;
             return true;
         });
+
+        // 玩家死亡后清除尸体背包中的神社相关物品
+        OnDeathWithBody.EVENT.register((victim, killer, deathReason, body) -> {
+            if (body == null) return;
+            PlayerBodyEntityComponent bodyComp = PlayerBodyEntityComponent.KEY.get(body);
+            if (bodyComp == null) return;
+            var inv = bodyComp.getCorpseInventory();
+            for (int i = 0; i < inv.getContainerSize(); i++) {
+                ItemStack stack = inv.getItem(i);
+                if (stack.getItem() == ModItems.SHRINE || stack.getItem() == ModItems.SHRINE_ENTRANCE) {
+                    inv.setItem(i, ItemStack.EMPTY);
+                }
+            }
+        });
     }
 
     public static boolean canStart() {
@@ -131,7 +149,8 @@ public class ShrineSequence {
         return ShrineManager.isPlayerInShrineBounds(player);
     }
 
-    /** 开始神社降临序列：发送网络包给所有玩家 → 客户端渲染虚影 → 服务端倒计时 */
+    /** 开始神社降临序列：发送网络包给所有玩家 → 客户端渲染虚影 → 服务端倒计时
+     *  巫女（Reimu）会立即进入神社并开启安全区，防止被列车碾压 */
     public static void startSequence(ServerPlayer player) {
         if (!canStart()) {
             return;
@@ -146,19 +165,13 @@ public class ShrineSequence {
             target = new Vec3(ShrineManager.SHRINE_X, ShrineManager.SHRINE_Y, ShrineManager.SHRINE_Z);
         }
 
-        double skyY = target.y + SKY_OFFSET;
         ghostTarget = target;
         cachedServer = serverLevel.getServer();
 
         long now = System.currentTimeMillis();
-        ghostStartMs = now;
 
-        phase = Phase.GHOST_FALLING;
-        phaseEndTick = now + GHOST_FALL_MS;
-
-        // 虚影渲染在玩家当前位置，而非固定神社坐标
-        // 这样所有玩家都能看到虚影从自己头顶/身边降临
-        double ghostHalf = 24.0; // 结构大小的一半，覆盖虚影范围
+        // 幽灵动画发送给所有玩家
+        double ghostHalf = 24.0;
         ShrineGhostStartPayload payload = new ShrineGhostStartPayload(now,
                 player.getX() - ghostHalf, player.getY() - ghostHalf, player.getZ() - ghostHalf,
                 player.getX() + ghostHalf, player.getY() + ghostHalf, player.getZ() + ghostHalf,
@@ -169,9 +182,57 @@ public class ShrineSequence {
             ServerPlayNetworking.send(pl, payload);
         }
 
-        ShrineManager.preShrinePositions.clear();
+        // 保存巫女离开前的原始位置
+        double[] reimuSavedPos = new double[] {
+            player.getX(), player.getY(), player.getZ(),
+            player.getYRot(), player.getXRot()
+        };
 
-        PathsRoleMod.LOGGER.info("[ShrineSequence] Shrine descent started. startMs={}", now);
+        ShrineManager.preShrinePositions.clear();
+        ShrineManager.preShrinePositions.put(player.getUUID(), reimuSavedPos);
+
+        // 立即建造神社并让巫女进入
+        ShrineManager.ensureShrineSceneBuilt(serverLevel);
+
+        Vec3 spawnPos = ShrineSceneBuilder.getShrineSpawnPos();
+        player.addEffect(new MobEffectInstance(ModEffects.BLACK_MONITOR, 20 * 1, 0, false, false, false));
+        player.stopSleeping();
+        player.stopRiding();
+
+        if (spawnPos != null) {
+            player.teleportTo(serverLevel, spawnPos.x, spawnPos.y, spawnPos.z,
+                    Set.of(), ShrineSceneBuilder.getShrineSpawnYaw(), ShrineSceneBuilder.getShrineSpawnPitch());
+        } else {
+            player.teleportTo(serverLevel,
+                    ShrineManager.SHRINE_X, ShrineManager.SHRINE_Y + 1, ShrineManager.SHRINE_Z,
+                    Set.of(), player.getYRot(), player.getXRot());
+        }
+        player.setDeltaMovement(0.0D, 0.0D, 0.0D);
+        player.fallDistance = 0.0F;
+
+        // 安全区立即开启：FEATHER + 神社保护 + 时间冻结
+        WorldModifierComponent modifierCca = WorldModifierComponent.KEY.get(serverLevel);
+        if (modifierCca != null) {
+            modifierCca.addModifier(player.getUUID(), SEModifiers.FEATHER);
+        }
+
+        SREPlayerPoisonComponent poisonComp = SREPlayerPoisonComponent.KEY.get(player);
+        if (poisonComp != null && poisonComp.poisonTicks > 0) {
+            poisonComp.poisonTicks = -1;
+            poisonComp.fakePoison = false;
+            poisonComp.poisoner = null;
+            poisonComp.sync();
+        }
+
+        protectedShrinePlayers.add(player.getUUID());
+
+        SREGameTimeComponent gameTime = SREGameTimeComponent.KEY.get(serverLevel);
+        if (gameTime != null) {
+            gameTime.setTimeFrozen(true);
+        }
+
+        phase = Phase.GHOST_FALLING;
+        phaseEndTick = now + GHOST_FALL_MS;
     }
 
     /** 每 tick 由 ServerTickEvents 调用 */
@@ -206,18 +267,19 @@ public class ShrineSequence {
                     if (pl == null) continue;
                     if (sl == null) sl = (ServerLevel) pl.level();
                     UUID uuid = pl.getUUID();
-                    if (protectedShrinePlayers.contains(uuid) && !isInShrineBounds(pl)) {
+                    if (!protectedShrinePlayers.contains(uuid)) continue;
+
+                    if (!isInShrineBounds(pl)) {
                         removeShrineProtection(pl, sl);
-                        PathsRoleMod.LOGGER.info("[ShrineSequence] Player {} left shrine, protection removed", pl.getName().getString());
+                        continue;
                     }
-                    if (protectedShrinePlayers.contains(uuid)) {
-                        SREPlayerPoisonComponent poisonComp = SREPlayerPoisonComponent.KEY.get(pl);
-                        if (poisonComp != null && poisonComp.poisonTicks > 0) {
-                            poisonComp.poisonTicks = -1;
-                            poisonComp.fakePoison = false;
-                            poisonComp.poisoner = null;
-                            poisonComp.sync();
-                        }
+
+                    SREPlayerPoisonComponent poisonComp = SREPlayerPoisonComponent.KEY.get(pl);
+                    if (poisonComp != null && poisonComp.poisonTicks > 0) {
+                        poisonComp.poisonTicks = -1;
+                        poisonComp.fakePoison = false;
+                        poisonComp.poisoner = null;
+                        poisonComp.sync();
                     }
                 }
             }
@@ -231,7 +293,7 @@ public class ShrineSequence {
         // COOLDOWN phase: just wait for cooldown to expire, handled by canStart()
     }
 
-    private static void removeShrineProtection(ServerPlayer player, ServerLevel serverLevel) {
+    public static void removeShrineProtection(ServerPlayer player, ServerLevel serverLevel) {
         UUID uuid = player.getUUID();
         if (!protectedShrinePlayers.contains(uuid)) return;
 
@@ -239,13 +301,65 @@ public class ShrineSequence {
         player.removeEffect(ModEffects.CHAT_BAN);
         player.removeEffect(ModEffects.SKILL_BANED);
 
-        WorldModifierComponent modifierCca = WorldModifierComponent.KEY.get(serverLevel);
-        if (modifierCca != null) {
-            modifierCca.removeModifier(uuid, SEModifiers.JEB_);
-            modifierCca.removeModifier(uuid, SEModifiers.FEATHER);
+        if (serverLevel != null) {
+            WorldModifierComponent modifierCca = WorldModifierComponent.KEY.get(serverLevel);
+            if (modifierCca != null) {
+                modifierCca.removeModifier(uuid, SEModifiers.JEB_);
+                modifierCca.removeModifier(uuid, SEModifiers.FEATHER);
+            }
         }
 
         protectedShrinePlayers.remove(uuid);
+    }
+
+    public static void removeShrineEntranceEffects(ServerPlayer player) {
+        if (!(player.level() instanceof ServerLevel sl)) return;
+        removeShrineProtection(player, sl);
+    }
+
+    public static void applyShrineEntranceEffects(ServerPlayer player) {
+        if (!(player.level() instanceof ServerLevel serverLevel)) return;
+
+        SREGameWorldComponent gameWorld = SREGameWorldComponent.KEY.get(player.level());
+        boolean isReimu = gameWorld != null && gameWorld.isRole(player, ModRoles.REIMU);
+
+        WorldModifierComponent modifierCca = WorldModifierComponent.KEY.get(serverLevel);
+
+        if (!isReimu) {
+            player.addEffect(new MobEffectInstance(ModEffects.VOICE_SILENCE,
+                    (int) ACTIVE_TICKS, 0, false, false, false));
+            player.addEffect(new MobEffectInstance(ModEffects.CHAT_BAN,
+                    (int) ACTIVE_TICKS, 0, false, false, false));
+            player.addEffect(new MobEffectInstance(ModEffects.SKILL_BANED,
+                    (int) ACTIVE_TICKS, 0, false, false, true));
+
+            if (modifierCca != null) {
+                modifierCca.addModifier(player.getUUID(), SEModifiers.JEB_);
+            }
+        }
+
+        if (modifierCca != null) {
+            modifierCca.addModifier(player.getUUID(), SEModifiers.FEATHER);
+        }
+
+        SREPlayerPoisonComponent poisonComp = SREPlayerPoisonComponent.KEY.get(player);
+        if (poisonComp != null && poisonComp.poisonTicks > 0) {
+            poisonComp.poisonTicks = -1;
+            poisonComp.fakePoison = false;
+            poisonComp.poisoner = null;
+            poisonComp.sync();
+        }
+
+        protectedShrinePlayers.add(player.getUUID());
+    }
+
+    private static void removeEntranceItems(ServerPlayer player) {
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (stack.getItem() == ModItems.SHRINE_ENTRANCE || stack.getItem() == ModItems.SHRINE) {
+                player.getInventory().setItem(i, ItemStack.EMPTY);
+            }
+        }
     }
 
     public static long getPhaseEndTick() {
@@ -255,33 +369,19 @@ public class ShrineSequence {
     private static void onGhostLanded() {
         if (phase != Phase.GHOST_FALLING) return;
 
-        ServerLevel serverLevel = null;
-        if (cachedServer != null) {
-            for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
-                if (pl == null) continue;
-                serverLevel = (ServerLevel) pl.level();
-                break;
-            }
-        }
-
+        ServerLevel serverLevel = cachedServer.getLevel(Level.OVERWORLD);
         if (serverLevel == null) return;
-
-        if (cachedServer == null || cachedServer.getPlayerList() == null) return;
 
         ShrineManager.ensureShrineSceneBuilt(serverLevel);
 
-        Vec3 spawnPos = ShrineSceneBuilder.getShrineSpawnPos();
-        float spawnYaw = ShrineSceneBuilder.getShrineSpawnYaw();
-        float spawnPitch = ShrineSceneBuilder.getShrineSpawnPitch();
-
+        // 强制加载布谷鸟蛋和玩家所在区块
         forceLoadedChunks.clear();
         try {
             for (CuckooEggData.EggInfo info : CuckooEggData.getAllEggs().values()) {
                 if (info == null || info.eggEntity == null || !info.eggEntity.isAlive()) continue;
-                ChunkPos cp = info.eggEntity.chunkPosition();
-                forceLoadedChunks.add(cp);
+                forceLoadedChunks.add(info.eggEntity.chunkPosition());
             }
-            for (ServerPlayer pl : serverLevel.getServer().getPlayerList().getPlayers()) {
+            for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
                 if (pl == null) continue;
                 forceLoadedChunks.add(new ChunkPos(pl.blockPosition()));
             }
@@ -289,80 +389,50 @@ public class ShrineSequence {
                 serverLevel.setChunkForced(cp.x, cp.z, true);
             }
             if (!forceLoadedChunks.isEmpty()) {
-                PathsRoleMod.LOGGER.info("[ShrineSequence] Force-loaded {} chunks to protect entities.",
-                        forceLoadedChunks.size());
+                PathsRoleMod.LOGGER.info("[ShrineSequence] Force-loaded {} chunks.", forceLoadedChunks.size());
             }
         } catch (Exception e) {
             PathsRoleMod.LOGGER.error("[ShrineSequence] Failed to force-load chunks", e);
         }
 
+        // 给非巫女玩家发放神社出入口物品
         int count = 0;
-        WorldModifierComponent modifierCca = WorldModifierComponent.KEY.get(serverLevel);
-        for (ServerPlayer pl : serverLevel.getServer().getPlayerList().getPlayers()) {
+        for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
             if (pl == null) continue;
-            ShrineManager.preShrinePositions.put(pl.getUUID(), new double[] {
-                    pl.getX(), pl.getY(), pl.getZ(),
-                    pl.getYRot(), pl.getXRot()
-            });
-
-            pl.addEffect(new MobEffectInstance(ModEffects.BLACK_MONITOR, 20 * 1, 0, false, false, false));
-            pl.stopSleeping();
-            pl.stopRiding();
-
-            if (spawnPos != null) {
-                pl.teleportTo(serverLevel, spawnPos.x, spawnPos.y, spawnPos.z,
-                        Set.of(), spawnYaw, spawnPitch);
-            } else {
-                pl.teleportTo(serverLevel,
-                        ShrineManager.SHRINE_X, ShrineManager.SHRINE_Y + 1, ShrineManager.SHRINE_Z,
-                        Set.of(), pl.getYRot(), pl.getXRot());
-            }
-            pl.setDeltaMovement(0.0D, 0.0D, 0.0D);
-            pl.fallDistance = 0.0F;
-
-            if (pl.connection != null) {
-                pl.connection.send(new ClientboundSetTitlesAnimationPacket(0, 40, 5));
-                pl.connection.send(new ClientboundSetTitleTextPacket(
-                    Component.literal("§e右键神社赛钱箱可用打开巫女赞助小商店")
-                ));
-            }
 
             SREGameWorldComponent gameWorld = SREGameWorldComponent.KEY.get(pl.level());
             boolean isReimu = gameWorld != null && gameWorld.isRole(pl, ModRoles.REIMU);
 
-            if (!isReimu) {
-                pl.addEffect(new MobEffectInstance(ModEffects.VOICE_SILENCE,
-                        (int) ACTIVE_TICKS, 0, false, false, false));
-                pl.addEffect(new MobEffectInstance(ModEffects.CHAT_BAN,
-                        (int) ACTIVE_TICKS, 0, false, false, false));
-                pl.addEffect(new MobEffectInstance(ModEffects.SKILL_BANED,
-                        (int) ACTIVE_TICKS, 0, false, false, true));
-
-                if (modifierCca != null) {
-                    modifierCca.addModifier(pl.getUUID(), SEModifiers.JEB_);
+            if (isReimu) {
+                if (pl.connection != null) {
+                    pl.connection.send(new ClientboundSetTitlesAnimationPacket(0, 40, 5));
+                    pl.connection.send(new ClientboundSetTitleTextPacket(
+                        Component.literal("§e神社已降临！使用神社自由进出")
+                    ));
                 }
+                count++;
+                continue;
             }
 
-            if (modifierCca != null) {
-                modifierCca.addModifier(pl.getUUID(), SEModifiers.FEATHER);
+            ItemStack entranceItem = new ItemStack(ModItems.SHRINE_ENTRANCE);
+            if (!pl.getInventory().add(entranceItem)) {
+                pl.drop(entranceItem, false);
             }
 
-            SREPlayerPoisonComponent poisonComp = SREPlayerPoisonComponent.KEY.get(pl);
-            if (poisonComp != null && poisonComp.poisonTicks > 0) {
-                poisonComp.poisonTicks = -1;
-                poisonComp.fakePoison = false;
-                poisonComp.poisoner = null;
-                poisonComp.sync();
+            if (pl.connection != null) {
+                pl.connection.send(new ClientboundSetTitlesAnimationPacket(0, 40, 5));
+                pl.connection.send(new ClientboundSetTitleTextPacket(
+                    Component.literal("§e神社已降临！使用神社出入口进入")
+                ));
             }
 
-            protectedShrinePlayers.add(pl.getUUID());
             count++;
         }
 
-        // 强制疯魔玩家退出疯魔状态，恢复原皮肤，退还一半金币
-        int psychoRefund = 200; // psychoModePrice(400) / 2，向下取整
+        // 强制疯魔玩家退出疯魔状态
+        int psychoRefund = 200;
         int psychoExited = 0;
-        for (ServerPlayer pl : serverLevel.getServer().getPlayerList().getPlayers()) {
+        for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
             if (pl == null) continue;
             try {
                 SREPlayerPsychoComponent psycho = SREPlayerPsychoComponent.KEY.get(pl);
@@ -377,9 +447,8 @@ public class ShrineSequence {
                 }
 
                 psychoExited++;
-                String playerName = pl.getName() != null ? pl.getName().getString() : "Unknown";
                 PathsRoleMod.LOGGER.info("[ShrineSequence] {} 被强制退出疯魔状态，退还 {} 金币",
-                        playerName, psychoRefund);
+                        pl.getName() != null ? pl.getName().getString() : "Unknown", psychoRefund);
             } catch (Exception e) {
                 PathsRoleMod.LOGGER.error("[ShrineSequence] 处理玩家疯魔退出时出错", e);
             }
@@ -396,7 +465,7 @@ public class ShrineSequence {
             gameTime.setTimeFrozen(true);
         }
 
-        PathsRoleMod.LOGGER.info("[ShrineSequence] Shrine landed. {} players teleported. Active for {}s.",
+        PathsRoleMod.LOGGER.info("[ShrineSequence] Shrine landed. {} players got items. Active {}s.",
                 count, ACTIVE_TICKS / 20);
     }
 
@@ -404,38 +473,28 @@ public class ShrineSequence {
         phase = Phase.COOLDOWN;
         phaseEndTick = System.currentTimeMillis() + (COOLDOWN_TICKS * 50);
 
-        if (cachedServer != null) {
-            ServerLevel overworld = cachedServer.getLevel(Level.OVERWORLD);
-            if (overworld != null) {
-                SREGameTimeComponent gameTime = SREGameTimeComponent.KEY.get(overworld);
-                if (gameTime != null) {
-                    gameTime.setTimeFrozen(false);
-                }
-            }
-        }
+        unfreezeTime();
 
-        ServerLevel serverLevel = null;
         if (cachedServer != null && cachedServer.getPlayerList() != null) {
             for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
                 if (pl == null) continue;
-                if (serverLevel == null) {
-                    serverLevel = (ServerLevel) pl.level();
+                removeShrineProtection(pl, (ServerLevel) pl.level());
+                removeEntranceItems(pl);
+                if (ShrineManager.isPlayerInShrineBounds(pl)) {
+                    ShrineManager.leaveShrineInternal(pl);
                 }
-                ShrineManager.leaveShrineInternal(pl);
-                removeShrineProtection(pl, serverLevel);
             }
         }
 
-        protectedShrinePlayers.clear();
-        shrineBannedPlayers.clear();
-        ShrineManager.preShrinePositions.clear();
+        cleanupShrine();
 
-        if (serverLevel != null && savedDayTime >= 0) {
-            serverLevel.setDayTime(savedDayTime);
+        if (savedDayTime >= 0) {
+            ServerLevel restoreLevel = cachedServer != null ? cachedServer.getLevel(Level.OVERWORLD) : null;
+            if (restoreLevel != null) {
+                restoreLevel.setDayTime(savedDayTime);
+            }
             savedDayTime = -1;
         }
-
-        releaseForceLoadedChunks();
 
         PathsRoleMod.LOGGER.info("[ShrineSequence] Shrine ended. Cooldown {}s.", COOLDOWN_TICKS / 20);
     }
@@ -455,23 +514,43 @@ public class ShrineSequence {
         if (cachedServer != null && cachedServer.getPlayerList() != null) {
             for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
                 if (pl == null) continue;
-                ShrineManager.leaveShrineInternal(pl);
                 removeShrineProtection(pl, serverLevel);
+                removeEntranceItems(pl);
+                if (ShrineManager.isPlayerInShrineBounds(pl)) {
+                    ShrineManager.leaveShrineInternal(pl);
+                }
             }
         }
 
-        protectedShrinePlayers.clear();
-        shrineBannedPlayers.clear();
-        ShrineManager.preShrinePositions.clear();
+        cleanupShrine();
 
         if (serverLevel != null && savedDayTime >= 0) {
             serverLevel.setDayTime(savedDayTime);
             savedDayTime = -1;
         }
 
-        releaseForceLoadedChunks();
-
         PathsRoleMod.LOGGER.info("[ShrineSequence] Aborted from phase {} due to game end.", prevPhase);
+    }
+
+    private static void cleanupShrine() {
+        ShrineEntranceItem.reset();
+        ShrineItem.resetReimuTracking();
+        protectedShrinePlayers.clear();
+        shrineBannedPlayers.clear();
+        ShrineManager.preShrinePositions.clear();
+        releaseForceLoadedChunks();
+    }
+
+    private static void unfreezeTime() {
+        if (cachedServer != null) {
+            ServerLevel overworld = cachedServer.getLevel(Level.OVERWORLD);
+            if (overworld != null) {
+                SREGameTimeComponent gameTime = SREGameTimeComponent.KEY.get(overworld);
+                if (gameTime != null) {
+                    gameTime.setTimeFrozen(false);
+                }
+            }
+        }
     }
 
     public static Phase getPhase() {

@@ -4,7 +4,6 @@ public class ShrineClientState {
 
     public static final long GHOST_FALL_MS = 10_000;
     public static final long ACTIVE_DURATION_MS = 60 * 1000;
-    public static final long COOLDOWN_DURATION_MS = 200 * 1000;
 
     private static long ghostStartMs = 0;
     private static boolean ghostActive = false;
@@ -74,12 +73,6 @@ public class ShrineClientState {
         if (now < shrineEndMs) {
             long remaining = Math.max(0, (shrineEndMs - now) / 1000);
             return "§d神社开放中... §f" + remaining + "§d秒";
-        }
-
-        long cooldownEndMs = shrineEndMs + COOLDOWN_DURATION_MS;
-        if (now < cooldownEndMs) {
-            long remaining = Math.max(0, (cooldownEndMs - now) / 1000);
-            return "§7冷却中... §f" + remaining + "§7秒";
         }
 
         ghostActive = false;
