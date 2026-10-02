@@ -1,8 +1,5 @@
 package org.agmas.pathsrole.content.item;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
 import net.minecraft.server.level.ServerPlayer;
@@ -11,30 +8,15 @@ import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
 import io.wifi.starrailexpress.cca.SREGameWorldComponent;
 import net.minecraft.world.level.Level;
 import org.agmas.noellesroles.game.roles.innocence.fool.ShrineManager;
 import org.agmas.noellesroles.game.roles.innocence.fool.ShrineSequence;
-import org.agmas.pathsrole.client.ShrineClientState;
 import org.agmas.pathsrole.init.ModRoles;
-
-import java.util.List;
 
 public class ShrineItem extends Item {
     public ShrineItem(Item.Properties properties) {
         super(properties);
-    }
-
-    @Environment(EnvType.CLIENT)
-    @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, context, tooltip, flag);
-        if (Minecraft.getInstance().level == null) return;
-        String status = ShrineClientState.getStatusText();
-        if (status != null) {
-            tooltip.add(Component.literal(status));
-        }
     }
 
     @Override

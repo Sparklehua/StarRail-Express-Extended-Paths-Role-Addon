@@ -80,6 +80,7 @@ public class ShrineShopScreen extends Screen {
     public static int SPECIAL_NEUTRAL_REMAINING = 2;
     public static int INNOCENT_REMAINING = 3;
     public static boolean SPECIAL_NEUTRAL_POTION_PURCHASED = false;
+    public static boolean BROOM_PURCHASED = false;
     
     private static final Set<Item> REIMU_PURCHASABLE = Set.of(
         ModItems.BROOM
@@ -201,9 +202,14 @@ public class ShrineShopScreen extends Screen {
 
         guiGraphics.drawString(safeFont, text, textX, textY, 0xFFFFAA00, true);
 
+        String broomHint = BROOM_PURCHASED
+                ? "\u00a77\u00a7m\u626b\u5e1a\u6bcf\u4e2a\u4eba\u53ef\u4ee5\u5355\u72ec\u8d2d\u4e70\u4e00\u6b21\u00a7r\u00a7c \u5df2\u8d2d\u4e70"
+                : "\u00a7a\u2728 \u626b\u5e1a\u6bcf\u4e2a\u4eba\u53ef\u4ee5\u5355\u72ec\u8d2d\u4e70\u4e00\u6b21";
+        guiGraphics.drawString(safeFont, broomHint, textX, textY + 12, 0xFFFFFF, false);
+
         if (currentType == ShrineShopType.SPECIAL_NEUTRAL && SPECIAL_NEUTRAL_POTION_PURCHASED) {
             String potionHint = "\u00a7c\u00a7l\u836f\u6c34\u5df2\u552e\u7f44\uff08\u968f\u673a\u53d8\u6362\u4e2d\u7684\u836f\u6c34\u4ecd\u53ef\u4f7f\u7528\uff09";
-            guiGraphics.drawString(safeFont, potionHint, textX, textY + 12, 0xFFFF5555, false);
+            guiGraphics.drawString(safeFont, potionHint, textX, textY + 24, 0xFFFF5555, false);
         }
     }
     
@@ -404,6 +410,9 @@ public class ShrineShopScreen extends Screen {
             if (entry.stack() != null && entry.stack().is(net.minecraft.world.item.Items.POTION)) {
                 return false;
             }
+        }
+        if (BROOM_PURCHASED && entry.stack() != null && entry.stack().is(ModItems.BROOM)) {
+            return false;
         }
         try {
             return entry.canBuy(this.minecraft.player);

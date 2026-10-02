@@ -2,6 +2,7 @@ package org.agmas.noellesroles.game.roles.innocence.fool;
 
 import io.wifi.starrailexpress.cca.SREGameTimeComponent;
 import io.wifi.starrailexpress.cca.SREGameWorldComponent;
+import io.wifi.starrailexpress.cca.SREPlayerPoisonComponent;
 import io.wifi.starrailexpress.cca.SREPlayerPsychoComponent;
 import io.wifi.starrailexpress.cca.SREPlayerShopComponent;
 import io.wifi.starrailexpress.event.AllowPlayerDeath;
@@ -20,6 +21,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 import org.agmas.harpymodloader.component.WorldModifierComponent;
+import org.agmas.noellesroles.game.roles.neutral.cuckoo.CuckooEggData;
 import org.agmas.noellesroles.init.ModEffects;
 import org.agmas.pathsrole.PathsRoleMod;
 import org.agmas.pathsrole.init.ModItems;
@@ -30,6 +32,7 @@ import pro.fazeclan.river.stupid_express.constants.SEModifiers;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import net.minecraft.world.level.ChunkPos;
 
 public class ShrineSequence {
 
@@ -55,11 +58,14 @@ public class ShrineSequence {
     private static boolean eventsRegistered = false;
     private static int displayCounter = 0;
 
-    /** 神社保护中的玩家（非巫女），享有 JEB + 静语 + 无敌 */
+    /** 全力保护的玩家（非巫女），享有 JEB + 静语 + 无敌 */
     private static final Set<UUID> protectedShrinePlayers = new HashSet<>();
 
     /** 巫女拉黑的玩家（无法在神社赛钱箱购买物品） */
     private static final Set<UUID> shrineBannedPlayers = new HashSet<>();
+
+    /** 神社期间强制加载的区块，用于防止布谷鸟蛋等实体被卸载清除 */
+    private static final Set<ChunkPos> forceLoadedChunks = new HashSet<>();
 
     public static boolean isShrineProtected(UUID uuid) {
         return protectedShrinePlayers.contains(uuid);
@@ -159,6 +165,7 @@ public class ShrineSequence {
                 player.getY());
 
         for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
+            if (pl == null) continue;
             ServerPlayNetworking.send(pl, payload);
         }
 
@@ -185,6 +192,7 @@ public class ShrineSequence {
                 long remaining = Math.max(0, (phaseEndTick - System.currentTimeMillis()) / 1000);
                 Component msg = Component.literal("§d神社剩余时间 §f" + remaining + "§d秒");
                 for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
+                    if (pl == null) continue;
                     if (isInShrineBounds(pl)) {
                         pl.displayClientMessage(msg, true);
                     }
@@ -195,11 +203,21 @@ public class ShrineSequence {
             if (displayCounter % 10 == 0 && !protectedShrinePlayers.isEmpty()) {
                 ServerLevel sl = null;
                 for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
+                    if (pl == null) continue;
                     if (sl == null) sl = (ServerLevel) pl.level();
                     UUID uuid = pl.getUUID();
                     if (protectedShrinePlayers.contains(uuid) && !isInShrineBounds(pl)) {
                         removeShrineProtection(pl, sl);
                         PathsRoleMod.LOGGER.info("[ShrineSequence] Player {} left shrine, protection removed", pl.getName().getString());
+                    }
+                    if (protectedShrinePlayers.contains(uuid)) {
+                        SREPlayerPoisonComponent poisonComp = SREPlayerPoisonComponent.KEY.get(pl);
+                        if (poisonComp != null && poisonComp.poisonTicks > 0) {
+                            poisonComp.poisonTicks = -1;
+                            poisonComp.fakePoison = false;
+                            poisonComp.poisoner = null;
+                            poisonComp.sync();
+                        }
                     }
                 }
             }
@@ -222,7 +240,10 @@ public class ShrineSequence {
         player.removeEffect(ModEffects.SKILL_BANED);
 
         WorldModifierComponent modifierCca = WorldModifierComponent.KEY.get(serverLevel);
-        modifierCca.removeModifier(uuid, SEModifiers.JEB_);
+        if (modifierCca != null) {
+            modifierCca.removeModifier(uuid, SEModifiers.JEB_);
+            modifierCca.removeModifier(uuid, SEModifiers.FEATHER);
+        }
 
         protectedShrinePlayers.remove(uuid);
     }
@@ -237,6 +258,7 @@ public class ShrineSequence {
         ServerLevel serverLevel = null;
         if (cachedServer != null) {
             for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
+                if (pl == null) continue;
                 serverLevel = (ServerLevel) pl.level();
                 break;
             }
@@ -252,9 +274,32 @@ public class ShrineSequence {
         float spawnYaw = ShrineSceneBuilder.getShrineSpawnYaw();
         float spawnPitch = ShrineSceneBuilder.getShrineSpawnPitch();
 
+        forceLoadedChunks.clear();
+        try {
+            for (CuckooEggData.EggInfo info : CuckooEggData.getAllEggs().values()) {
+                if (info == null || info.eggEntity == null || !info.eggEntity.isAlive()) continue;
+                ChunkPos cp = info.eggEntity.chunkPosition();
+                forceLoadedChunks.add(cp);
+            }
+            for (ServerPlayer pl : serverLevel.getServer().getPlayerList().getPlayers()) {
+                if (pl == null) continue;
+                forceLoadedChunks.add(new ChunkPos(pl.blockPosition()));
+            }
+            for (ChunkPos cp : forceLoadedChunks) {
+                serverLevel.setChunkForced(cp.x, cp.z, true);
+            }
+            if (!forceLoadedChunks.isEmpty()) {
+                PathsRoleMod.LOGGER.info("[ShrineSequence] Force-loaded {} chunks to protect entities.",
+                        forceLoadedChunks.size());
+            }
+        } catch (Exception e) {
+            PathsRoleMod.LOGGER.error("[ShrineSequence] Failed to force-load chunks", e);
+        }
+
         int count = 0;
         WorldModifierComponent modifierCca = WorldModifierComponent.KEY.get(serverLevel);
         for (ServerPlayer pl : serverLevel.getServer().getPlayerList().getPlayers()) {
+            if (pl == null) continue;
             ShrineManager.preShrinePositions.put(pl.getUUID(), new double[] {
                     pl.getX(), pl.getY(), pl.getZ(),
                     pl.getYRot(), pl.getXRot()
@@ -275,11 +320,12 @@ public class ShrineSequence {
             pl.setDeltaMovement(0.0D, 0.0D, 0.0D);
             pl.fallDistance = 0.0F;
 
-            // 传送后，在屏幕中间显示提示消息2秒
-            pl.connection.send(new ClientboundSetTitlesAnimationPacket(0, 40, 5));
-            pl.connection.send(new ClientboundSetTitleTextPacket(
-                Component.literal("§e右键神社赛钱箱可用打开巫女赞助小商店")
-            ));
+            if (pl.connection != null) {
+                pl.connection.send(new ClientboundSetTitlesAnimationPacket(0, 40, 5));
+                pl.connection.send(new ClientboundSetTitleTextPacket(
+                    Component.literal("§e右键神社赛钱箱可用打开巫女赞助小商店")
+                ));
+            }
 
             SREGameWorldComponent gameWorld = SREGameWorldComponent.KEY.get(pl.level());
             boolean isReimu = gameWorld != null && gameWorld.isRole(pl, ModRoles.REIMU);
@@ -292,7 +338,21 @@ public class ShrineSequence {
                 pl.addEffect(new MobEffectInstance(ModEffects.SKILL_BANED,
                         (int) ACTIVE_TICKS, 0, false, false, true));
 
-                modifierCca.addModifier(pl.getUUID(), SEModifiers.JEB_);
+                if (modifierCca != null) {
+                    modifierCca.addModifier(pl.getUUID(), SEModifiers.JEB_);
+                }
+            }
+
+            if (modifierCca != null) {
+                modifierCca.addModifier(pl.getUUID(), SEModifiers.FEATHER);
+            }
+
+            SREPlayerPoisonComponent poisonComp = SREPlayerPoisonComponent.KEY.get(pl);
+            if (poisonComp != null && poisonComp.poisonTicks > 0) {
+                poisonComp.poisonTicks = -1;
+                poisonComp.fakePoison = false;
+                poisonComp.poisoner = null;
+                poisonComp.sync();
             }
 
             protectedShrinePlayers.add(pl.getUUID());
@@ -357,6 +417,7 @@ public class ShrineSequence {
         ServerLevel serverLevel = null;
         if (cachedServer != null && cachedServer.getPlayerList() != null) {
             for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
+                if (pl == null) continue;
                 if (serverLevel == null) {
                     serverLevel = (ServerLevel) pl.level();
                 }
@@ -373,6 +434,8 @@ public class ShrineSequence {
             serverLevel.setDayTime(savedDayTime);
             savedDayTime = -1;
         }
+
+        releaseForceLoadedChunks();
 
         PathsRoleMod.LOGGER.info("[ShrineSequence] Shrine ended. Cooldown {}s.", COOLDOWN_TICKS / 20);
     }
@@ -391,6 +454,7 @@ public class ShrineSequence {
 
         if (cachedServer != null && cachedServer.getPlayerList() != null) {
             for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
+                if (pl == null) continue;
                 ShrineManager.leaveShrineInternal(pl);
                 removeShrineProtection(pl, serverLevel);
             }
@@ -405,10 +469,34 @@ public class ShrineSequence {
             savedDayTime = -1;
         }
 
+        releaseForceLoadedChunks();
+
         PathsRoleMod.LOGGER.info("[ShrineSequence] Aborted from phase {} due to game end.", prevPhase);
     }
 
     public static Phase getPhase() {
         return phase;
+    }
+
+    private static void releaseForceLoadedChunks() {
+        if (forceLoadedChunks.isEmpty()) return;
+        ServerLevel serverLevel = null;
+        if (cachedServer != null) {
+            serverLevel = cachedServer.getLevel(Level.OVERWORLD);
+        }
+        if (serverLevel == null) {
+            forceLoadedChunks.clear();
+            return;
+        }
+        try {
+            for (ChunkPos cp : forceLoadedChunks) {
+                serverLevel.setChunkForced(cp.x, cp.z, false);
+            }
+            PathsRoleMod.LOGGER.info("[ShrineSequence] Released {} force-loaded chunks.",
+                    forceLoadedChunks.size());
+        } catch (Exception e) {
+            PathsRoleMod.LOGGER.error("[ShrineSequence] Failed to release force-loaded chunks", e);
+        }
+        forceLoadedChunks.clear();
     }
 }

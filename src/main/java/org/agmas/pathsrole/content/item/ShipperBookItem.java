@@ -109,7 +109,14 @@ extends Item {
     @Environment(value=EnvType.CLIENT)
     private void openBookScreen(ItemStack stack) {
         ShipperPlayerComponent shipperComp = ShipperPlayerComponent.KEY.get(Minecraft.getInstance().player);
-        if (shipperComp != null && shipperComp.isRageActive()) {
+        if (shipperComp == null) {
+            return;
+        }
+        if (shipperComp.isRageActive()) {
+            return;
+        }
+        if (!shipperComp.hasEverBound()) {
+            Minecraft.getInstance().player.displayClientMessage(Component.translatable("message.pathsrole.shipper_book.not_bound"), true);
             return;
         }
         Minecraft.getInstance().setScreen((Screen)new ShipperBookScreen());

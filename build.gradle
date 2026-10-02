@@ -27,6 +27,13 @@ repositories {
 		}
 	}
 	maven { url = 'https://maven.fabricmc.net/' }
+	maven {
+		name = 'GeckoLib'
+		url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+		content {
+			includeGroup("software.bernie.geckolib")
+		}
+	}
 	flatDir {
 		dirs "libs"
 	}
@@ -45,6 +52,10 @@ dependencies {
 	modImplementation("org.ladysnake.cardinal-components-api:cardinal-components-entity:${project.cca_version}") { transitive = false }
 
 	include(modImplementation("io.github.llamalad7:mixinextras-fabric:0.4.1"))
+
+	modCompileOnly "maven.modrinth:simple-voice-chat:fabric-1.21.1-2.6.18"
+
+	modImplementation "software.bernie.geckolib:geckolib-fabric-1.21.1:4.9.2"
 }
 
 processResources {

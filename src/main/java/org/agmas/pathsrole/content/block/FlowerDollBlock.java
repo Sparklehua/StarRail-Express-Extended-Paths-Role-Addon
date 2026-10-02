@@ -20,15 +20,12 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import io.wifi.starrailexpress.cca.SREGameWorldComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
-import org.agmas.pathsrole.content.entity.FlowerDollExplosionManager;
-import org.agmas.pathsrole.content.entity.FlowerDollSavedData;
 import org.agmas.pathsrole.init.ModBlockEntities;
 import org.jetbrains.annotations.Nullable;
 
@@ -74,32 +71,18 @@ public class FlowerDollBlock extends Block implements EntityBlock {
             return InteractionResult.PASS;
         }
 
-        boolean explode = dollBe.addClick();
-        int clicks = dollBe.getClickCount();
+        if (dollBe.isCountingDown()) {
+            return InteractionResult.SUCCESS;
+        }
 
-        sendDollMessage(player, clicks);
+        dollBe.addClick();
+
+        sendDollMessage(player, dollBe.getClickCount());
 
         SoundEvent plushSound = SoundEvent.createVariableRangeEvent(
                 ResourceLocation.fromNamespaceAndPath("noellesroles", "plush.baka"));
         float pitch = 0.8F + level.random.nextFloat() * 0.4F;
         level.playSound(null, pos, plushSound, SoundSource.BLOCKS, 1.0F, pitch);
-
-        if (explode) {
-            ServerLevel serverLevel = (ServerLevel) level;
-            if (serverLevel.getServer() == null || !serverLevel.getServer().isRunning()) {
-                return InteractionResult.SUCCESS;
-            }
-            FlowerDollExplosionManager.explode(serverLevel, pos, null);
-            try {
-                FlowerDollSavedData savedData = FlowerDollSavedData.get(serverLevel.getServer());
-                long restoreAt = FlowerDollExplosionManager.getRestoreTime(serverLevel);
-                savedData.add(new FlowerDollSavedData.Entry(
-                        serverLevel.dimension().location(), pos.immutable(), state, restoreAt));
-            } catch (IllegalStateException e) {
-                return InteractionResult.SUCCESS;
-            }
-            level.removeBlock(pos, false);
-        }
 
         return InteractionResult.SUCCESS;
     }

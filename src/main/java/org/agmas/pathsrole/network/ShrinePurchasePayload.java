@@ -56,9 +56,20 @@ public record ShrinePurchasePayload(ItemStack item, int price, ShrineShopType sh
             return;
         }
 
+        if (context.server() == null) return;
+
         context.server().execute(() -> {
-            // === 特殊中立阵营：per-player检查 ===
-            if (shopType == ShrineShopType.SPECIAL_NEUTRAL) {
+            boolean isBroom = item.is(org.agmas.pathsrole.init.ModItems.BROOM);
+
+            if (isBroom) {
+                if (!ShrinePurchaseTracker.canPlayerBuyBroom(buyer.getUUID())) {
+                    buyer.displayClientMessage(
+                            Component.literal("你已经购买过扫帚了！")
+                                    .withStyle(ChatFormatting.RED),
+                            true);
+                    return;
+                }
+            } else if (shopType == ShrineShopType.SPECIAL_NEUTRAL) {
                 if (!ShrinePurchaseTracker.canPlayerPurchase(buyer.getUUID())) {
                     buyer.displayClientMessage(
                             Component.translatable("message.pathsrole.shrine_shop.no_remaining_purchases")
@@ -101,7 +112,9 @@ public record ShrinePurchasePayload(ItemStack item, int price, ShrineShopType sh
             }
 
             // 扣除购买次数
-            if (shopType == ShrineShopType.SPECIAL_NEUTRAL) {
+            if (isBroom) {
+                ShrinePurchaseTracker.recordBroomPurchase(buyer.getUUID());
+            } else if (shopType == ShrineShopType.SPECIAL_NEUTRAL) {
                 ShrinePurchaseTracker.recordPlayerPurchase(buyer.getUUID());
 
                 boolean isPotionItem = item.is(Items.POTION)

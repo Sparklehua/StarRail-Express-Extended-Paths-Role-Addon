@@ -1,10 +1,12 @@
 package org.agmas.pathsrole.init;
 
+import io.wifi.starrailexpress.api.CustomWinnerRole;
 import io.wifi.starrailexpress.api.InstinctType;
 import io.wifi.starrailexpress.api.NormalRole;
 import io.wifi.starrailexpress.api.SRERole;
 import io.wifi.starrailexpress.api.TMMRoles;
 import io.wifi.starrailexpress.cca.SREArmorPlayerComponent;
+import io.wifi.starrailexpress.game.GameUtils;
 import io.wifi.starrailexpress.util.ShopEntry;
 import java.awt.Color;
 import java.util.List;
@@ -22,6 +24,8 @@ import org.agmas.pathsrole.game.roles.paths.equilibrium.reimu.ReimuShopHandler;
 import org.agmas.pathsrole.game.roles.paths.elation.shipper.ShipperShopHandler;
 import org.agmas.pathsrole.game.roles.paths.the_hunt.bountyhunter.BountyHunterPlayerComponent;
 import org.agmas.pathsrole.game.roles.paths.the_hunt.bountyhunter.BountyHunterShopHandler;
+import org.agmas.pathsrole.game.roles.paths.nihility.shion.ShionPlayerComponent;
+import org.agmas.pathsrole.game.roles.paths.nihility.shion.ShionShopHandler;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +35,7 @@ public class ModRoles {
     public static final ResourceLocation REIMU_ID = PathsRoleMod.id("reimu");
     public static final ResourceLocation SHIPPER_ID = PathsRoleMod.id("shipper");
     public static final ResourceLocation BOUNTY_HUNTER_ID = PathsRoleMod.id("bounty_hunter");
+    public static final ResourceLocation SHION_ID = PathsRoleMod.id("shion");
     public static final SRERole REIMU = TMMRoles.registerRole((SRERole)new NormalRole(REIMU_ID, new Color(220, 60, 60).getRGB(), false, false, SRERole.MoodType.FAKE, (int)((double)TMMRoles.CIVILIAN.getMaxSprintTime() * 2.5), false){
 
         public Paths path = Paths.EQUILIBRIUM;
@@ -119,13 +124,36 @@ public class ModRoles {
             return true;
         }
     }.setComponentKey(PathsroleComponents.BOUNTY_HUNTER_PLAYER_KEY).setNeutralForKiller(true)).setCanSeeCoin(true).setCanUseInstinct(true).setCanIgnoreBlackout(false).setCanEarnKillerCoinAwardsFromKills(true).setKillExtraCoinAwards(5).setInitialCoinCount(100).setDefaultEnableNeededPlayerCount(10).setDefaultMax(1).setDefaultEnableChance(10000);
+    public static final SRERole SHION = TMMRoles.registerRole((SRERole)new CustomWinnerRole(SHION_ID, new Color(120, 81, 169).getRGB(), false, false, SRERole.MoodType.FAKE, -1, false){
+
+        public Paths path = Paths.NIHILITY;
+
+        public Paths getPath() {
+            return path;
+        }
+
+        public List<ShopEntry> getShopEntries() {
+            return ShionShopHandler.getEntries();
+        }
+
+        @Override
+        public boolean didPlayerWin(ServerPlayer player, boolean original, GameUtils.WinStatus winStatus) {
+            ShionPlayerComponent comp = PathsroleComponents.getShionComponent(player);
+            if (comp != null && comp.hasWinTriggered()) {
+                return true;
+            }
+            return original;
+        }
+    }.setComponentKey(PathsroleComponents.SHION_PLAYER_KEY).setNeutrals(true)).setCanSeeCoin(true).setCanUseInstinct(false).setBeSeenInstinctType(InstinctType.NONE, InstinctType.NONE).setCanIgnoreBlackout(true).setOccupiedRoleCount(0).setDefaultMax(1).setDefaultEnableChance(2000);
 
     public static void init() {
         Harpymodloader.setRoleMaximum((ResourceLocation)REIMU_ID, (Integer)1);
         Harpymodloader.setRoleMaximum((ResourceLocation)BOUNTY_HUNTER_ID, (Integer)1);
+        Harpymodloader.setRoleMaximum((ResourceLocation)SHION_ID, (Integer)1);
         LOGGER.info("Registered Pathsrole role: {} ({})", (Object)REIMU_ID, (Object)REIMU.getClass().getSimpleName());
         LOGGER.info("Registered Pathsrole role: {} ({})", (Object)SHIPPER_ID, (Object)SHIPPER.getClass().getSimpleName());
         LOGGER.info("Registered Pathsrole role: {} ({})", (Object)BOUNTY_HUNTER_ID, (Object)BOUNTY_HUNTER.getClass().getSimpleName());
+        LOGGER.info("Registered Pathsrole role: {} ({})", (Object)SHION_ID, (Object)SHION.getClass().getSimpleName());
         PathsRoleMod.LOGGER.info("Registered Pathsrole roles");
     }
 }

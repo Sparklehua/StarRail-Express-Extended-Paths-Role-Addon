@@ -17,10 +17,12 @@ import org.agmas.pathsrole.content.item.BroomItem;
 import org.agmas.pathsrole.content.item.GoheiItem;
 import org.agmas.pathsrole.content.item.FlowerDollItem;
 import org.agmas.pathsrole.content.item.PeepingEyeItem;
+import org.agmas.pathsrole.content.item.PlayerDollItem;
 import org.agmas.pathsrole.content.item.RageShipperItem;
 import org.agmas.pathsrole.content.item.ShipperBookItem;
 import org.agmas.pathsrole.content.item.ShipperPistolItem;
 import org.agmas.pathsrole.content.item.SpellCardItem;
+import org.agmas.pathsrole.content.item.CaneItem;
 import org.agmas.pathsrole.content.item.ShipperMomentRevolverItem;
 import org.agmas.pathsrole.content.item.ShrineItem;
 import org.agmas.pathsrole.content.item.TargetRevolverItem;
@@ -45,6 +47,10 @@ public class ModItems {
     public static final PeepingEyeItem PEEPING_EYE = new PeepingEyeItem(new Item.Properties().stacksTo(1));
     public static final FlowerDollItem FLOWER_DOLL = new FlowerDollItem(ModBlocks.FLOWER_DOLL, new Item.Properties().stacksTo(1));
     public static final ShipperMomentRevolverItem SHIPPER_MOMENT_REVOLVER = new ShipperMomentRevolverItem(new Item.Properties().stacksTo(1));
+    public static final Item BEGGING_BOWL = new Item(new Item.Properties().stacksTo(1));
+    public static final Item BOWL = new Item(new Item.Properties().stacksTo(1));
+    public static final Item CANE = new CaneItem(new Item.Properties().durability(3));
+    public static final PlayerDollItem PLAYER_DOLL = new PlayerDollItem(ModBlocks.PLAYER_DOLL, new Item.Properties().stacksTo(16));
 
     public static final ResourceKey<CreativeModeTab> FLOWER_ROLE_ITEMS_KEY = ResourceKey.create(
         Registries.CREATIVE_MODE_TAB,
@@ -72,6 +78,9 @@ public class ModItems {
             output.accept(PEEPING_EYE);
             output.accept(FLOWER_DOLL);
             output.accept(SHIPPER_MOMENT_REVOLVER);
+            output.accept(BEGGING_BOWL);
+            output.accept(BOWL);
+            output.accept(CANE);
         })
         .build();
 
@@ -93,6 +102,10 @@ public class ModItems {
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "peeping_eye"), PEEPING_EYE);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "flower_doll"), FLOWER_DOLL);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "shipper_moment_revolver"), SHIPPER_MOMENT_REVOLVER);
+        Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "begging_bowl"), BEGGING_BOWL);
+        Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "bowl"), BOWL);
+        Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "cane"), CANE);
+        Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "player_doll"), PLAYER_DOLL);
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, FLOWER_ROLE_ITEMS_KEY, FLOWER_ROLE_ITEMS);
     }
 }

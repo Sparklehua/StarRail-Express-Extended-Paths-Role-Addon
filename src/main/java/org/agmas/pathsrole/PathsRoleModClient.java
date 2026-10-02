@@ -12,6 +12,7 @@ import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
 
 
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -35,11 +36,15 @@ import org.agmas.pathsrole.client.BountyHunterClientHandler;
 import org.agmas.pathsrole.game.roles.paths.the_hunt.bountyhunter.BountyHunterPlayerComponent;
 import org.agmas.pathsrole.client.DonationBoxRenderer;
 import org.agmas.pathsrole.client.ReimuStabilizationHud;
+import org.agmas.pathsrole.client.ShrineStatusHud;
 import org.agmas.pathsrole.client.ReimuShieldBreakNotifier;
 import org.agmas.pathsrole.client.ShipperMarkClientHandler;
 import org.agmas.pathsrole.client.ShrineClientState;
 
 import org.agmas.pathsrole.client.renderer.FlowerDollBlockEntityRenderer;
+import org.agmas.pathsrole.client.renderer.DollBlockRenderer;
+import org.agmas.pathsrole.client.renderer.DollItemRenderer;
+import org.agmas.pathsrole.client.renderer.CelestialGrimoireRenderer;
 import org.agmas.pathsrole.client.renderer.YinYangOrbRenderer;
 import org.agmas.pathsrole.client.renderer.ShrineGhostRenderer;
 import org.agmas.pathsrole.client.renderer.ThrownFlowerDollRenderer;
@@ -58,8 +63,10 @@ import org.agmas.pathsrole.network.ShrinePurchaseCountSyncPayload;
 import org.agmas.pathsrole.network.MimiResponsePacket;
 import org.agmas.pathsrole.network.BanListResponsePayload;
 import org.agmas.pathsrole.network.PlayerVisibilityStatePayload;
+import org.agmas.pathsrole.network.BeggingRequestPayload;
 import org.agmas.pathsrole.client.screen.MimiScreen;
 import org.agmas.pathsrole.client.screen.ShrineShopScreen;
+import org.agmas.pathsrole.client.screen.BeggingScreen;
 import org.agmas.pathsrole.ShrineShopType;
 import org.agmas.pathsrole.content.block.ShrineDonationBoxBlock;
 import org.agmas.noellesroles.game.roles.innocence.fool.ShrineSequence;
@@ -172,6 +179,7 @@ implements ClientModInitializer {
                 org.agmas.pathsrole.client.screen.ShrineShopScreen.SPECIAL_NEUTRAL_REMAINING = payload.specialNeutralRemaining();
                 org.agmas.pathsrole.client.screen.ShrineShopScreen.INNOCENT_REMAINING = payload.innocentRemaining();
                 org.agmas.pathsrole.client.screen.ShrineShopScreen.SPECIAL_NEUTRAL_POTION_PURCHASED = payload.specialNeutralPotionPurchased();
+                org.agmas.pathsrole.client.screen.ShrineShopScreen.BROOM_PURCHASED = payload.broomPurchased();
             });
         });
 
@@ -179,6 +187,12 @@ implements ClientModInitializer {
             context.client().execute(() -> {
                 hiddenPlayerUuids.clear();
                 hiddenPlayerUuids.addAll(payload.hiddenPlayerUuids());
+            });
+        });
+
+        ClientPlayNetworking.registerGlobalReceiver(BeggingRequestPayload.ID, (payload, context) -> {
+            context.client().execute(() -> {
+                Minecraft.getInstance().setScreen(new BeggingScreen(payload.beggarUuid(), payload.beggarName()));
             });
         });
 
@@ -209,6 +223,7 @@ implements ClientModInitializer {
         });
         ShipperMarkClientHandler.register();
         ReimuStabilizationHud.register();
+        ShrineStatusHud.register();
         BountyHunterClientHandler.register();
         WantedPosterItem.openGuiRunner = () -> {
             Minecraft client = Minecraft.getInstance();
@@ -221,7 +236,11 @@ implements ClientModInitializer {
         EntityRendererRegistry.register(ModEntities.YIN_YANG_ORB, YinYangOrbRenderer::new);
         EntityRendererRegistry.register(ModEntities.THROWN_FLOWER_DOLL, ThrownFlowerDollRenderer::new);
         BlockRenderLayerMap.INSTANCE.putBlock(ModBlocks.FLOWER_DOLL, RenderType.cutout());
+        BlockRenderLayerMap.INSTANCE.putBlock(ModBlocks.BOWL_BLOCK, RenderType.cutout());
         BlockEntityRendererRegistry.register(ModBlockEntities.FLOWER_DOLL, FlowerDollBlockEntityRenderer::new);
+        BlockEntityRendererRegistry.register(ModBlockEntities.PLAYER_DOLL, DollBlockRenderer::new);
+        BuiltinItemRendererRegistry.INSTANCE.register(ModItems.PLAYER_DOLL, new DollItemRenderer());
+        BuiltinItemRendererRegistry.INSTANCE.register(ModItems.AS_I_WRITE, new CelestialGrimoireRenderer());
         CommonInstinctEvents.ALIVE_COMMON_BEFORE_EVENT.register((self, target, hasInstinct) -> {
             if (target == null) {
                 return TrueFalseAndCustomResult.pass();
@@ -255,11 +274,10 @@ implements ClientModInitializer {
             }
             return TrueFalseAndCustomResult.pass();
         });
-        CommonInstinctEvents.ALIVE_COMMON_AFTER_EVENT.register((self, target, hasInstinct) -> {
-            if (!(target instanceof Player)) {
+        CommonInstinctEvents.ALIVE_COMMON_BEFORE_EVENT.register((self, target, hasInstinct) -> {
+            if (self == null || !(target instanceof Player targetPlayer)) {
                 return TrueFalseAndCustomResult.pass();
             }
-            Player targetPlayer = (Player)target;
             if (SREClient.gameComponent == null) {
                 return TrueFalseAndCustomResult.pass();
             }
@@ -270,13 +288,14 @@ implements ClientModInitializer {
             if (shipperComp == null) {
                 return TrueFalseAndCustomResult.pass();
             }
-            if (shipperComp.isRageActive() && shipperComp.getRageKiller() != null && shipperComp.getRageKiller().equals(targetPlayer.getUUID())) {
+            if (shipperComp.isRageActive() && shipperComp.getRageKiller() != null
+                    && shipperComp.getRageKiller().equals(targetPlayer.getUUID())) {
                 return TrueFalseAndCustomResult.custom(Integer.valueOf(new Color(178, 34, 34).getRGB()));
             }
             if (!hasInstinct) {
                 return TrueFalseAndCustomResult.pass();
             }
-            if (targetPlayer.distanceToSqr((Entity)self) > 1600.0) {
+            if (!shipperComp.isShipperMomentActive() && targetPlayer.distanceToSqr((Entity)self) > 1600.0) {
                 return TrueFalseAndCustomResult.disallow();
             }
             if (shipperComp.getPairedLovers().contains(targetPlayer.getUUID())) {

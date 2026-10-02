@@ -179,21 +179,19 @@ public class CardIconRenderer {
     }
 
     private static void renderMagnifierIcon(GuiGraphics g, int cx, int cy, int size) {
-        int r = size / 3;
-        int handleLen = size / 4;
-        double angle = Math.PI / 4;
+        int WHITE = 0xFFFFFFFF;
 
-        drawCircle(g, cx - 4, cy - 4, r, ICON_COLOR);
-        drawCircle(g, cx - 4, cy - 4, r - 4, 0x40E0E0FF);
+        g.fill(cx-3, cy-17, cx+3, cy-16, WHITE);
+        g.fill(cx-5, cy-16, cx+5, cy-9, WHITE);
+        g.fill(cx-4, cy-9, cx+4, cy-8, WHITE);
 
-        int handleX1 = cx + (int)(Math.cos(angle) * r) - 4;
-        int handleY1 = cy + (int)(Math.sin(angle) * r) - 4;
-        int handleX2 = handleX1 + (int)(Math.cos(angle) * handleLen);
-        int handleY2 = handleY1 + (int)(Math.sin(angle) * handleLen);
+        g.fill(cx-4, cy-7, cx+4, cy+4, WHITE);
 
-        drawThickLine(g, handleX1, handleY1, handleX2, handleY2, 3, ICON_COLOR);
+        g.fill(cx-8, cy-6, cx-4, cy+2, WHITE);
+        g.fill(cx+4, cy-6, cx+8, cy+2, WHITE);
 
-        g.fill(handleX2 - 2, handleY2 - 4, handleX2 + 4, handleY2 + 2, ICON_COLOR);
+        g.fill(cx-4, cy+5, cx-1, cy+16, WHITE);
+        g.fill(cx+1, cy+5, cx+4, cy+16, WHITE);
     }
 
     private static void renderEnvelopeIcon(GuiGraphics g, int cx, int cy, int size) {

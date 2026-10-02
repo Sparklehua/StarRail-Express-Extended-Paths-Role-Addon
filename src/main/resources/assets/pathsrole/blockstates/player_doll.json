@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "pathsrole:block/player_doll" },
+    "facing=south": { "model": "pathsrole:block/player_doll" },
+    "facing=east": { "model": "pathsrole:block/player_doll" },
+    "facing=west": { "model": "pathsrole:block/player_doll" }
+  }
+}

@@ -740,11 +740,13 @@ public class ShipperEvents {
         if (wmc == null) {
             return;
         }
-        if (!wmc.isModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK)) {
-            return;
-        }
         ShipperPlayerComponent shipperComp = ShipperEvents.findShipperComponent(deadPlayer);
         if (shipperComp == null) {
+            return;
+        }
+        boolean isMarked = wmc.isModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK);
+        boolean isPaired = shipperComp.getPairedLovers().contains(deadPlayer.getUUID());
+        if (!isMarked && !isPaired) {
             return;
         }
         Player shipper = shipperComp.getPlayer();
@@ -756,7 +758,7 @@ public class ShipperEvents {
             shipperComp.clearPairedLovers();
             return;
         }
-        if (!shipperComp.getPairedLovers().contains(deadPlayer.getUUID())) {
+        if (!isPaired) {
             wmc.removeModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK, false);
             return;
         }

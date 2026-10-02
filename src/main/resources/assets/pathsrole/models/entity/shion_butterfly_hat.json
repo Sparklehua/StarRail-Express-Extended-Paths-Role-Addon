@@ -1,0 +1,107 @@
+{
+  "format_version": "26.3",
+  "credit": "Shion Butterfly Ribbon Hat - Blockbench",
+  "texture_size": [64, 64],
+  "textures": {
+    "texture": "pathsrole:textures/entity/shion_butterfly_hat"
+  },
+  "elements": [
+    {
+      "name": "left_loop_top",
+      "box": { "uv": [0, 0, 8, 4], "size": [5, 1, 3] },
+      "from": [1, 7, 6],
+      "to": [6, 8, 9],
+      "rotation": { "angle": -30, "axis": "z", "origin": [3.5, 7.5, 7.5] }
+    },
+    {
+      "name": "left_loop_side",
+      "box": { "uv": [0, 4, 8, 4], "size": [5, 1, 3] },
+      "from": [1, 8, 6],
+      "to": [6, 9, 9],
+      "rotation": { "angle": -60, "axis": "z", "origin": [3.5, 8.5, 7.5] }
+    },
+    {
+      "name": "left_loop_bottom",
+      "box": { "uv": [0, 8, 8, 4], "size": [5, 1, 3] },
+      "from": [1, 9, 6],
+      "to": [6, 10, 9],
+      "rotation": { "angle": -90, "axis": "z", "origin": [3.5, 9.5, 7.5] }
+    },
+    {
+      "name": "left_loop_inner",
+      "box": { "uv": [0, 12, 4, 3], "size": [5, 1, 2] },
+      "from": [1, 9, 6.5],
+      "to": [6, 10, 8.5],
+      "rotation": { "angle": -120, "axis": "z", "origin": [3.5, 9.5, 7.5] }
+    },
+    {
+      "name": "right_loop_top",
+      "box": { "uv": [16, 0, 8, 4], "size": [5, 1, 3] },
+      "from": [10, 7, 6],
+      "to": [15, 8, 9],
+      "rotation": { "angle": 30, "axis": "z", "origin": [12.5, 7.5, 7.5] }
+    },
+    {
+      "name": "right_loop_side",
+      "box": { "uv": [16, 4, 8, 4], "size": [5, 1, 3] },
+      "from": [10, 8, 6],
+      "to": [15, 9, 9],
+      "rotation": { "angle": 60, "axis": "z", "origin": [12.5, 8.5, 7.5] }
+    },
+    {
+      "name": "right_loop_bottom",
+      "box": { "uv": [16, 8, 8, 4], "size": [5, 1, 3] },
+      "from": [10, 9, 6],
+      "to": [15, 10, 9],
+      "rotation": { "angle": 90, "axis": "z", "origin": [12.5, 9.5, 7.5] }
+    },
+    {
+      "name": "right_loop_inner",
+      "box": { "uv": [16, 12, 4, 3], "size": [5, 1, 2] },
+      "from": [10, 9, 6.5],
+      "to": [15, 10, 8.5],
+      "rotation": { "angle": 120, "axis": "z", "origin": [12.5, 9.5, 7.5] }
+    },
+    {
+      "name": "center_knot",
+      "box": { "uv": [0, 16, 4, 4], "size": [2, 2, 2] },
+      "from": [7, 8, 7],
+      "to": [9, 10, 9]
+    },
+    {
+      "name": "left_tail_upper",
+      "box": { "uv": [32, 0, 4, 8], "size": [2, 5, 1] },
+      "from": [6, 3, 7.5],
+      "to": [8, 8, 8.5],
+      "rotation": { "angle": 15, "axis": "z", "origin": [7, 5.5, 8] }
+    },
+    {
+      "name": "left_tail_lower",
+      "box": { "uv": [32, 8, 4, 8], "size": [2, 5, 1] },
+      "from": [6, -2, 7.5],
+      "to": [8, 3, 8.5],
+      "rotation": { "angle": -10, "axis": "z", "origin": [7, 0.5, 8] }
+    },
+    {
+      "name": "right_tail_upper",
+      "box": { "uv": [40, 0, 4, 8], "size": [2, 5, 1] },
+      "from": [8, 3, 7.5],
+      "to": [10, 8, 8.5],
+      "rotation": { "angle": -15, "axis": "z", "origin": [9, 5.5, 8] }
+    },
+    {
+      "name": "right_tail_lower",
+      "box": { "uv": [40, 8, 4, 8], "size": [2, 5, 1] },
+      "from": [8, -2, 7.5],
+      "to": [10, 3, 8.5],
+      "rotation": { "angle": 10, "axis": "z", "origin": [9, 0.5, 8] }
+    }
+  ],
+  "display": {
+    "head": {
+      "translation": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1]
+    }
+  }
+}

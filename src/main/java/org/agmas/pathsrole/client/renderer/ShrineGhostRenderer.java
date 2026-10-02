@@ -45,6 +45,8 @@ public class ShrineGhostRenderer {
         float progress = Math.min(1.0f, (float) elapsed / (float) FALL_DURATION_MS);
 
         double playerY = mc.player.getY();
+        double playerX = mc.player.getX();
+        double playerZ = mc.player.getZ();
         double halfHeight = GhostMeshData.getStructureHalfHeight();
 
         if (halfHeight <= 0) {
@@ -55,21 +57,14 @@ public class ShrineGhostRenderer {
         double endY = playerY - 2.0 + halfHeight;
         double currentY = startY + (endY - startY) * (double) progress;
 
-        double centerX = ShrineClientState.getShrineCenterX();
-        double centerZ = ShrineClientState.getShrineCenterZ();
-
-        if (Double.isNaN(centerX) || Double.isNaN(centerZ)
-                || Double.isInfinite(centerX) || Double.isInfinite(centerZ)) {
-            return;
-        }
-
         Vec3 camPos = context.camera().getPosition();
 
         Matrix4f modelMatrix = new Matrix4f();
+        modelMatrix.scale(2.0F);
         modelMatrix.translate(
-                (float)(centerX - camPos.x),
+                (float)(playerX - camPos.x),
                 (float)(currentY - camPos.y),
-                (float)(centerZ - camPos.z));
+                (float)(playerZ - camPos.z));
         Matrix4f modelView = new Matrix4f(context.positionMatrix());
         modelView.mul(modelMatrix);
 

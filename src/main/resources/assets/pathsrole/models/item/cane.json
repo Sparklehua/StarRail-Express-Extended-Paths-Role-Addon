@@ -1,0 +1,28 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "minecraft:item/stick"
+  },
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [0, 90, 155],
+      "translation": [1, -1, -1],
+      "scale": [0.7, 0.7, 0.7]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [0, -90, -155],
+      "translation": [-1, -1, -1],
+      "scale": [0.7, 0.7, 0.7]
+    },
+    "firstperson_righthand": {
+      "rotation": [0, -45, 170],
+      "translation": [0, -2, -2],
+      "scale": [0.8, 0.8, 0.8]
+    },
+    "firstperson_lefthand": {
+      "rotation": [0, 45, -170],
+      "translation": [0, -2, -2],
+      "scale": [0.8, 0.8, 0.8]
+    }
+  }
+}

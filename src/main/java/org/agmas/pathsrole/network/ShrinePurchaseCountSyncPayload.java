@@ -14,7 +14,8 @@ public record ShrinePurchaseCountSyncPayload(
         int neutralKillerRemaining,
         int specialNeutralRemaining,
         int innocentRemaining,
-        boolean specialNeutralPotionPurchased
+        boolean specialNeutralPotionPurchased,
+        boolean broomPurchased
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<ShrinePurchaseCountSyncPayload> ID =
@@ -27,12 +28,14 @@ public record ShrinePurchaseCountSyncPayload(
                 buf.writeInt(payload.specialNeutralRemaining);
                 buf.writeInt(payload.innocentRemaining);
                 buf.writeBoolean(payload.specialNeutralPotionPurchased);
+                buf.writeBoolean(payload.broomPurchased);
             },
             (buf) -> new ShrinePurchaseCountSyncPayload(
                     buf.readInt(),
                     buf.readInt(),
                     buf.readInt(),
                     buf.readInt(),
+                    buf.readBoolean(),
                     buf.readBoolean()
             )
     );

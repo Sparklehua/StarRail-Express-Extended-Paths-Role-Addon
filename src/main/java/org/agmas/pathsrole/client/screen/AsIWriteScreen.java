@@ -113,6 +113,8 @@ public class AsIWriteScreen extends Screen {
             } else if (index == 2) {
                 ClientPlayNetworking.send(new MimiRequestPacket());
             } else if (index == 3) {
+            } else if (index == 4) {
+                this.minecraft.setScreen(new DollCraftScreen());
             } else if (index == 5) {
                 this.minecraft.setScreen(new MailBoxScreen());
             } else {
@@ -305,7 +307,7 @@ public class AsIWriteScreen extends Screen {
             "休闲游戏.exe",
             "迷迷.exe",
             "命途角色反馈.wav",
-            "播放控制遥控.exe",
+            "玩偶制作.exe",
             "邮箱.exe"
         };
 

@@ -1,0 +1,42 @@
+{
+  "textures": {
+    "0": "minecraft:item/stick",
+    "particle": "minecraft:item/stick"
+  },
+  "elements": [
+    {
+      "from": [7, 0, 7],
+      "to": [9, 16, 9],
+      "faces": {
+        "north": {"uv": [7, 0, 9, 16], "texture": "#0"},
+        "east": {"uv": [7, 0, 9, 16], "texture": "#0"},
+        "south": {"uv": [7, 0, 9, 16], "texture": "#0"},
+        "west": {"uv": [7, 0, 9, 16], "texture": "#0"},
+        "up": {"uv": [7, 7, 9, 9], "texture": "#0"},
+        "down": {"uv": [7, 7, 9, 9], "texture": "#0"}
+      }
+    }
+  ],
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [0, 90, 155],
+      "translation": [1, -1, -1],
+      "scale": [0.7, 0.7, 0.7]
+    },
+    "thirdperson_lefthand": {
+      "rotation": [0, -90, -155],
+      "translation": [-1, -1, -1],
+      "scale": [0.7, 0.7, 0.7]
+    },
+    "firstperson_righthand": {
+      "rotation": [0, -45, 170],
+      "translation": [0, -2, -2],
+      "scale": [0.8, 0.8, 0.8]
+    },
+    "firstperson_lefthand": {
+      "rotation": [0, 45, -170],
+      "translation": [0, -2, -2],
+      "scale": [0.8, 0.8, 0.8]
+    }
+  }
+}

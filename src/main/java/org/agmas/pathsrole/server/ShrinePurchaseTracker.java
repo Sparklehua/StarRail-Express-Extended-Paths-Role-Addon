@@ -22,6 +22,7 @@ public class ShrinePurchaseTracker {
 
     private static final Map<UUID, Integer> specialNeutralPlayerPurchases = new HashMap<>();
     private static final Set<UUID> specialNeutralPotionPurchasedPlayers = new HashSet<>();
+    private static final Set<UUID> broomPurchasedPlayers = new HashSet<>();
 
     public static void reset() {
         remainingPurchases.clear();
@@ -30,6 +31,7 @@ public class ShrinePurchaseTracker {
         }
         specialNeutralPlayerPurchases.clear();
         specialNeutralPotionPurchasedPlayers.clear();
+        broomPurchasedPlayers.clear();
     }
 
     public static boolean hasRemaining(ShrineShopType type) {
@@ -89,5 +91,20 @@ public class ShrinePurchaseTracker {
 
     public static boolean isSpecialNeutralPotionPurchased(UUID playerId) {
         return specialNeutralPotionPurchasedPlayers.contains(playerId);
+    }
+
+    public static boolean canPlayerBuyBroom(UUID playerId) {
+        if (playerId == null) return false;
+        return !broomPurchasedPlayers.contains(playerId);
+    }
+
+    public static void recordBroomPurchase(UUID playerId) {
+        if (playerId == null) return;
+        broomPurchasedPlayers.add(playerId);
+    }
+
+    public static boolean hasPlayerBoughtBroom(UUID playerId) {
+        if (playerId == null) return false;
+        return broomPurchasedPlayers.contains(playerId);
     }
 }

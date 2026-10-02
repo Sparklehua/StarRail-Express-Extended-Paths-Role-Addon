@@ -14,6 +14,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(KeyboardInput.class)
 public class KeyboardInputMixin {
 
+    @Inject(method = "tick", at = @At("HEAD"), cancellable = true)
+    private void pathsrole$$blockMovementWhileSitting(boolean slowDown, float f, CallbackInfo ci) {
+        Minecraft client = Minecraft.getInstance();
+        if (client == null || client.player == null) return;
+        var shionComp = PathsroleComponents.getShionComponent(client.player);
+        if (shionComp != null && shionComp.isSitting()) {
+            Input self = (Input)(Object)this;
+            self.forwardImpulse = 0;
+            self.leftImpulse = 0;
+            self.jumping = false;
+            self.shiftKeyDown = false;
+            ci.cancel();
+            return;
+        }
+    }
+
     @Inject(method = "tick", at = @At("TAIL"))
     private void pathsrole$restoreReimuJumping(boolean slowDown, float f, CallbackInfo ci) {
         Minecraft client = Minecraft.getInstance();

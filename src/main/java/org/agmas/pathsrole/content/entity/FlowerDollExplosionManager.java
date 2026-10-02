@@ -3,9 +3,8 @@ package org.agmas.pathsrole.content.entity;
 import io.wifi.starrailexpress.cca.SREGameWorldComponent;
 import io.wifi.starrailexpress.cca.AreasWorldComponent;
 import io.wifi.starrailexpress.event.AllowPlayerDeath;
+import io.wifi.starrailexpress.game.GameConstants;
 import io.wifi.starrailexpress.game.GameUtils;
-import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.particles.ParticleTypes;
@@ -16,10 +15,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
-import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -51,26 +46,34 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public final class FlowerDollExplosionManager {
 
     public static final int EXPLOSION_RADIUS = 4;
-    public static final int RESTORE_DELAY_TICKS = 100;
+    public static final int RESTORE_DELAY_TICKS_PLACED = 300;
+    public static final int RESTORE_DELAY_TICKS_THROWN = 100;
     public static final int TELEPORT_DELAY_TICKS = 60;
     public static final int INVULNERABLE_TICKS = 70;
-    public static boolean deferToGameEnd = true;
+    public static final int PENDING_KILL_DELAY_TICKS = 2000;
+    public static boolean deferToGameEnd = false;
 
     private static final List<PendingTeleport> pendingTeleports = new ArrayList<>();
+    private static final List<PendingKill> pendingKills = new ArrayList<>();
     private static final Map<UUID, Long> dollInvulnerableUntil = new HashMap<>();
+    private static final Set<BlockPos> explodedBefore = new HashSet<>();
     private static boolean eventsRegistered = false;
 
     private record PendingTeleport(ResourceKey<Level> dimension, UUID playerUUID,
                                    Vec3 targetPos, float yRot, float xRot, long executeAt) {}
+
+    private record PendingKill(ResourceKey<Level> dimension, UUID playerUUID, long executeAt) {}
 
     private FlowerDollExplosionManager() {
     }
@@ -83,14 +86,11 @@ public final class FlowerDollExplosionManager {
         if (eventsRegistered) return;
         eventsRegistered = true;
 
-        ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
-            if (entity.level().isClientSide()) return true;
-            if (entity instanceof Player && isDollInvulnerable(entity.getUUID())) return false;
-            return true;
-        });
-
         AllowPlayerDeath.EVENT.register((player, deathReason) -> {
-            if (isDollInvulnerable(player.getUUID())) return false;
+            if (isDollInvulnerable(player.getUUID())
+                    && deathReason.equals(GameConstants.DeathReasons.FELL_OUT_OF_TRAIN)) {
+                return false;
+            }
             return true;
         });
     }
@@ -102,10 +102,10 @@ public final class FlowerDollExplosionManager {
                 return Long.MAX_VALUE;
             }
         }
-        return world.getGameTime() + RESTORE_DELAY_TICKS;
+        return world.getGameTime() + RESTORE_DELAY_TICKS_PLACED;
     }
 
-    public static void explode(ServerLevel world, BlockPos center, @Nullable ServerPlayer thrower) {
+    public static void explode(ServerLevel world, BlockPos center, @Nullable ServerPlayer thrower, boolean isPlaced) {
         if (world.getServer() == null || !world.getServer().isRunning()) {
             return;
         }
@@ -126,7 +126,8 @@ public final class FlowerDollExplosionManager {
         }
 
         FlowerDollSavedData data = FlowerDollSavedData.get(world.getServer());
-        long restoreAt = world.getGameTime() + RESTORE_DELAY_TICKS;
+        long baseDelay = isPlaced ? RESTORE_DELAY_TICKS_PLACED : RESTORE_DELAY_TICKS_THROWN;
+        long now = world.getGameTime();
         ResourceLocation dim = world.dimension().location();
         int broken = 0;
 
@@ -136,6 +137,7 @@ public final class FlowerDollExplosionManager {
             if (!isBreakable(world, pos, state)) {
                 continue;
             }
+            long restoreAt = now + baseDelay;
             data.add(new FlowerDollSavedData.Entry(dim, pos, state, restoreAt));
             world.removeBlock(pos, false);
             world.sendParticles(ParticleTypes.CLOUD,
@@ -168,14 +170,16 @@ public final class FlowerDollExplosionManager {
         if (gameWorld != null && gameWorld.isRunning()) {
             AreasWorldComponent areas = AreasWorldComponent.KEY.get(world);
             if (areas != null) {
-            long now = world.getServer().getTickCount();
+            boolean skipTeleport = isPlaced && !explodedBefore.add(center.immutable());
+            if (!skipTeleport) {
+            long tickNow = world.getServer().getTickCount();
             List<ServerPlayer> nearbyPlayers = world.getEntitiesOfClass(ServerPlayer.class, clearBox);
-            long executeAt = now + TELEPORT_DELAY_TICKS;
+            long executeAt = tickNow + TELEPORT_DELAY_TICKS;
             for (ServerPlayer p : nearbyPlayers) {
                 if (p == null || p.isSpectator() || p.isCreative() || p.connection == null) {
                     continue;
                 }
-                dollInvulnerableUntil.put(p.getUUID(), now + INVULNERABLE_TICKS);
+                dollInvulnerableUntil.put(p.getUUID(), tickNow + INVULNERABLE_TICKS);
 
                 int room = GameUtils.roomToPlayer != null
                         ? GameUtils.roomToPlayer.getOrDefault(p.getUUID(), 1)
@@ -186,6 +190,22 @@ public final class FlowerDollExplosionManager {
                             world.dimension(), p.getUUID(), pos, p.getYRot(), p.getXRot(), executeAt));
                 });
             }
+            }
+            }
+            if (!isPlaced) {
+                List<ServerPlayer> nonKillerPlayers = new ArrayList<>();
+                List<ServerPlayer> nearbyPlayers = world.getEntitiesOfClass(ServerPlayer.class, clearBox);
+                for (ServerPlayer p : nearbyPlayers) {
+                    if (p != null && !p.isSpectator() && !p.isCreative() && p.connection != null
+                            && !gameWorld.isKillerTeam(p)) {
+                        nonKillerPlayers.add(p);
+                    }
+                }
+                if (!nonKillerPlayers.isEmpty()) {
+                    ServerPlayer target = nonKillerPlayers.get(world.random.nextInt(nonKillerPlayers.size()));
+                    long killAt = world.getServer().getTickCount() + PENDING_KILL_DELAY_TICKS;
+                    pendingKills.add(new PendingKill(world.dimension(), target.getUUID(), killAt));
+                }
             }
         }
     }
@@ -309,14 +329,24 @@ public final class FlowerDollExplosionManager {
                             && player.connection != null) {
                         player.teleportTo(targetWorld, pt.targetPos.x, pt.targetPos.y, pt.targetPos.z,
                                 pt.yRot, pt.xRot);
-                        Component title = Component.literal("四十二...你压力了四十二次！").withStyle(ChatFormatting.RED);
-                        Component subtitle = Component.literal("我想你已经领悟了一个列车宇宙的真谛——千万不要压力一只玩偶！").withStyle(ChatFormatting.RED);
-                        player.connection.send(new ClientboundSetTitleTextPacket(title));
-                        player.connection.send(new ClientboundSetSubtitleTextPacket(subtitle));
-                        player.connection.send(new ClientboundSetTitlesAnimationPacket(10, 160, 10));
                     }
                 }
                 it.remove();
+            }
+        }
+
+        Iterator<PendingKill> killIt = pendingKills.iterator();
+        while (killIt.hasNext()) {
+            PendingKill pk = killIt.next();
+            if (now >= pk.executeAt) {
+                ServerLevel targetWorld = server.getLevel(pk.dimension);
+                if (targetWorld != null) {
+                    if (targetWorld.getPlayerByUUID(pk.playerUUID) instanceof ServerPlayer player
+                            && player.connection != null && !player.isCreative() && !player.isSpectator()) {
+                        GameUtils.killPlayer(player, false, null, GameConstants.DeathReasons.GENERIC, true);
+                    }
+                }
+                killIt.remove();
             }
         }
 

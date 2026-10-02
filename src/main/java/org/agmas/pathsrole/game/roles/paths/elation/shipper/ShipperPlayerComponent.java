@@ -43,9 +43,10 @@ implements RoleComponent {
     public static Holder.Reference<SoundEvent> SHIPPER_MOMENT_MUSIC;
 
     public static void initSounds() {
-        SHIPPER_MOMENT_MUSIC = Registry.registerForHolder(BuiltInRegistries.SOUND_EVENT,
-                PathsRoleMod.id("music.shipper_moment"),
-                SoundEvent.createVariableRangeEvent(PathsRoleMod.id("music.shipper_moment")));
+        // 暂时移除磕学时刻音乐
+        // SHIPPER_MOMENT_MUSIC = Registry.registerForHolder(BuiltInRegistries.SOUND_EVENT,
+        //         PathsRoleMod.id("music.shipper_moment"),
+        //         SoundEvent.createVariableRangeEvent(PathsRoleMod.id("music.shipper_moment")));
     }
 
     public static void initFadeTick() {
@@ -253,15 +254,17 @@ implements RoleComponent {
                     retrieveMomentRevolvers(sp);
                 }
             }
-            // 磕学时刻音乐
+            // 磕学时刻音乐 - 暂时移除
+            /*
             try {
                 if (SHIPPER_MOMENT_MUSIC == null || SHIPPER_MOMENT_MUSIC.value() == null) return;
                 SoundEvent music = SHIPPER_MOMENT_MUSIC.value();
                 if (music.getLocation() == null) return;
+                if (sp.serverLevel() == null) return;
                 if (active) {
                     sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
-                            music, SoundSource.RECORDS, 1.4F, 1.0F);
-                    this.momentMusicTimer = 140;
+                            music, SoundSource.RECORDS, 5.0F, 1.0F);
+                    this.momentMusicTimer = 2360;
                 } else {
                     for (ServerPlayer target : sp.serverLevel().players()) {
                         if (target == null || target.connection == null) continue;
@@ -273,6 +276,7 @@ implements RoleComponent {
             } catch (Exception e) {
                 PathsRoleMod.LOGGER.error("[ShipperMoment] 音乐播放/停止出错", e);
             }
+            */
         }
     }
 
@@ -612,23 +616,25 @@ implements RoleComponent {
                 this.clearRage();
             }
             }
+        /* 暂时移除磕学时刻音乐循环
         if (this.shipperMomentActive && this.momentMusicTimer >= 0) {
             if (this.momentMusicTimer <= 0) {
                 try {
                     if (SHIPPER_MOMENT_MUSIC != null && SHIPPER_MOMENT_MUSIC.value() != null) {
                         SoundEvent music = SHIPPER_MOMENT_MUSIC.value();
-                        if (music.getLocation() != null) {
+                        if (music.getLocation() != null && sp.serverLevel() != null) {
                             sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
-                                    music, SoundSource.RECORDS, 1.4F, 1.0F);
+                                    music, SoundSource.RECORDS, 5.0F, 1.0F);
                         }
                     }
                 } catch (Exception e) {
                     PathsRoleMod.LOGGER.error("[ShipperMoment] 音乐循环播放出错", e);
                 }
-                this.momentMusicTimer = 140;
+                this.momentMusicTimer = 2360;
             }
             this.momentMusicTimer--;
         }
+        */
         if (!this.observationActive) {
             if (this.fadeState != FadeState.VISIBLE || this.invisibilityAlpha < 1.0f) {
                 this.forceRestoreVisible();
@@ -740,6 +746,8 @@ implements RoleComponent {
         tag.put("PairedLovers", loversList);
         tag.putLong("RePairCooldownEnd", this.rePairCooldownEnd);
         tag.putBoolean("ShipperMomentActive", this.shipperMomentActive);
+        tag.putBoolean("ShipperMomentCompleted", this.shipperMomentCompleted);
+        tag.putInt("MomentMusicTimer", this.momentMusicTimer);
         tag.putLong("LastInteractionTick", this.lastInteractionTick);
         tag.putLong("BetrayalEndTime", this.betrayalEndTime);
         if (this.rageKiller != null) {
@@ -801,6 +809,8 @@ implements RoleComponent {
         }
         this.rePairCooldownEnd = tag.getLong("RePairCooldownEnd");
         this.shipperMomentActive = tag.getBoolean("ShipperMomentActive");
+        this.shipperMomentCompleted = tag.getBoolean("ShipperMomentCompleted");
+        this.momentMusicTimer = tag.getInt("MomentMusicTimer");
         this.lastInteractionTick = tag.getLong("LastInteractionTick");
         this.betrayalEndTime = tag.getLong("BetrayalEndTime");
         this.rageKiller = tag.contains("RageKiller") ? tag.getUUID("RageKiller") : null;

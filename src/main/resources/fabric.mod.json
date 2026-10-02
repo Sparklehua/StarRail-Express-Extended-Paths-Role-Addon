@@ -22,6 +22,9 @@
     ],
     "cardinal-components": [
       "org.agmas.pathsrole.cca.PathsroleComponents"
+    ],
+    "voicechat": [
+      "org.agmas.pathsrole.voice.ShrineVoiceChatPlugin"
     ]
   },
   "mixins": [
@@ -36,16 +39,19 @@
     "fabric-api": "*",
     "starrailexpress": ">=4.3.0",
     "cardinal-components-base": ">=6.1.1",
-    "cardinal-components-entity": ">=6.1.1"
+    "cardinal-components-entity": ">=6.1.1",
+    "geckolib": ">=4.6.3"
   },
   "suggests": {
-    "voicechat": "*"
+    "voicechat": "*",
+    "skinlayers3d": "*"
   },
   "custom": {
     "cardinal-components": [
       "pathsrole:reimu_player",
       "pathsrole:shipper_player",
-      "pathsrole:bounty_hunter_player"
+      "pathsrole:bounty_hunter_player",
+      "pathsrole:shion_player"
     ]
   }
 }

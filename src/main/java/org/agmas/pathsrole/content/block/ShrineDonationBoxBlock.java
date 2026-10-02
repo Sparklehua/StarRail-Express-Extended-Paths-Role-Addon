@@ -57,7 +57,8 @@ public class ShrineDonationBoxBlock extends Block implements EntityBlock {
                     ShrinePurchaseTracker.getRemaining(ShrineShopType.NEUTRAL_KILLER),
                     ShrinePurchaseTracker.getPlayerRemaining(sp.getUUID()),
                     ShrinePurchaseTracker.getRemaining(ShrineShopType.INNOCENT),
-                    ShrinePurchaseTracker.isSpecialNeutralPotionPurchased(sp.getUUID())
+                    ShrinePurchaseTracker.isSpecialNeutralPotionPurchased(sp.getUUID()),
+                    ShrinePurchaseTracker.hasPlayerBoughtBroom(sp.getUUID())
             );
             ServerPlayNetworking.send(sp, countPayload);
         }

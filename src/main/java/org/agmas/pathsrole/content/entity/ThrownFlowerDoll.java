@@ -27,7 +27,7 @@ public class ThrownFlowerDoll extends NoHeavyWaterInfluencedThrowableItemProject
     private static final EntityDataAccessor<Float> SCALE =
             SynchedEntityData.defineId(ThrownFlowerDoll.class, EntityDataSerializers.FLOAT);
 
-    private static final int TICK_DURATION = 60;
+    private static final int TICK_DURATION = 50;
     private static final float START_SCALE = 0.6f;
     private static final float MAX_SCALE = 2.0f;
     private static final int BEEP_INITIAL_INTERVAL = 10;
@@ -132,7 +132,7 @@ public class ThrownFlowerDoll extends NoHeavyWaterInfluencedThrowableItemProject
         BlockPos center = this.blockPosition();
         ServerPlayer thrower = this.getOwner() instanceof ServerPlayer sp ? sp : null;
 
-        FlowerDollExplosionManager.explode(serverLevel, center, thrower);
+        FlowerDollExplosionManager.explode(serverLevel, center, thrower, false);
 
         serverLevel.sendParticles(ParticleTypes.EXPLOSION_EMITTER,
                 center.getX() + 0.5, center.getY() + 0.5, center.getZ() + 0.5,
