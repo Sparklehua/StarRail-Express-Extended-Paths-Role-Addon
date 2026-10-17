@@ -47,6 +47,9 @@ public record WantedPosterSignC2SPacket(UUID targetUuid) implements CustomPacket
             if (gameWorld == null || !gameWorld.isRunning() || !GameUtils.isPlayerAliveAndSurvivalIgnoreShitSplit(signer)) {
                 return;
             }
+            if (!gameWorld.isKillerTeam(signer) && !gameWorld.isNeutralForKiller(signer)) {
+                return;
+            }
             if (gameWorld.isRole(signer, ModRoles.BOUNTY_HUNTER)) {
                 signer.displayClientMessage(
                         Component.translatable("message.pathsrole.bounty_hunter.cannot_select_hunter")

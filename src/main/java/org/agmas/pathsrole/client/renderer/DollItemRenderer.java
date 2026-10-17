@@ -1,6 +1,7 @@
 package org.agmas.pathsrole.client.renderer;
 
 import com.mojang.authlib.GameProfile;
+import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
 import net.minecraft.client.Minecraft;
@@ -24,7 +25,7 @@ public class DollItemRenderer extends GeoItemRenderer<PlayerDollItem>
 
     private static final Map<ResourceLocation, SkinLayers3DIntegration.SkinMeshes> meshCache = new ConcurrentHashMap<>();
 
-    private static final ResourceLocation STEVE = ResourceLocation.withDefaultNamespace("textures/entity/steve.png");
+    private static final ResourceLocation STEVE = ResourceLocation.withDefaultNamespace("textures/entity/player/wide/steve.png");
 
     public DollItemRenderer() {
         super(new DollItemModel());
@@ -41,7 +42,7 @@ public class DollItemRenderer extends GeoItemRenderer<PlayerDollItem>
             playerName = profile.getName();
         }
 
-        ResourceLocation tex = getTexture(playerName, skinUrl);
+        ResourceLocation tex = getTexture(stack, playerName, skinUrl);
         ((DollItemModel) this.getGeoModel()).setCurrentTexture(tex);
 
         float[] boneData = getBoneDataFromStack(stack);
@@ -49,8 +50,8 @@ public class DollItemRenderer extends GeoItemRenderer<PlayerDollItem>
             applyBoneData(boneData);
         }
 
-        if (boneData != null && boneData.length > 15 && boneData[15] > 0) {
-            float scale = boneData[15];
+        if (boneData != null && boneData.length > 21 && boneData[21] > 0) {
+            float scale = boneData[21];
             poseStack.pushPose();
             poseStack.scale(1f, scale, 1f);
             poseStack.translate(0.5f, 0f, 0.5f);
@@ -117,12 +118,51 @@ public class DollItemRenderer extends GeoItemRenderer<PlayerDollItem>
             model.getBone("RightLeg").ifPresent(b -> { b.setRotX(boneData[9]); b.setRotY(boneData[10]); b.setRotZ(boneData[11]); });
         }
         if (boneData.length > 14) {
-            model.getBone("LeftLeg").ifPresent(b -> { b.setRotX(boneData[12]); b.setRotY(boneData[13]); b.setRotZ(boneData[14]); });
+            model.getBone("RightLeg").ifPresent(b -> { b.setPosX(boneData[12]); b.setPosY(boneData[13]); b.setPosZ(boneData[14]); });
+        }
+        if (boneData.length > 17) {
+            model.getBone("LeftLeg").ifPresent(b -> { b.setRotX(boneData[15]); b.setRotY(boneData[16]); b.setRotZ(boneData[17]); });
+        }
+        if (boneData.length > 20) {
+            model.getBone("LeftLeg").ifPresent(b -> { b.setPosX(boneData[18]); b.setPosY(boneData[19]); b.setPosZ(boneData[20]); });
         }
     }
 
+    private ResourceLocation getTexture(ItemStack stack, String playerName, String skinUrl) {
+        if (playerName == null || playerName.isEmpty()) {
+            return STEVE;
+        }
+
+        String cachedSkinData = getSkinDataFromStack(stack);
+        if (cachedSkinData != null && !cachedSkinData.isEmpty()) {
+            ResourceLocation texId = ResourceLocation.fromNamespaceAndPath("pathsrole",
+                    "skins/item_" + Integer.toHexString(cachedSkinData.hashCode()));
+            if (SkinTextureManager.isTextureLoaded(texId)) {
+                return texId;
+            }
+            try {
+                byte[] skinBytes = java.util.Base64.getDecoder().decode(cachedSkinData);
+                NativeImage img = NativeImage.read(new java.io.ByteArrayInputStream(skinBytes));
+                if (img != null) {
+                    SkinTextureManager.registerTexture(texId, img);
+                    return texId;
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        ResourceLocation cached = SkinTextureManager.getCachedTexture(playerName);
+        if (cached != null) return cached;
+        if (!SkinTextureManager.hasTriedSkin(playerName)) {
+            SkinTextureManager.loadSkinForPlayer(playerName, skinUrl);
+        }
+        return STEVE;
+    }
+
     private ResourceLocation getTexture(String playerName, String skinUrl) {
-        if (playerName == null || playerName.isEmpty()) return STEVE;
+        if (playerName == null || playerName.isEmpty()) {
+            return STEVE;
+        }
         ResourceLocation cached = SkinTextureManager.getCachedTexture(playerName);
         if (cached != null) return cached;
         if (SkinTextureManager.hasTriedSkin(playerName)) return STEVE;
@@ -135,6 +175,15 @@ public class DollItemRenderer extends GeoItemRenderer<PlayerDollItem>
         if (data != null && !data.isEmpty()) {
             CompoundTag tag = data.copyTag();
             if (tag.contains("PlayerName")) return tag.getString("PlayerName");
+        }
+        return null;
+    }
+
+    private String getSkinDataFromStack(ItemStack stack) {
+        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        if (data != null && !data.isEmpty()) {
+            CompoundTag tag = data.copyTag();
+            if (tag.contains("SkinData")) return tag.getString("SkinData");
         }
         return null;
     }

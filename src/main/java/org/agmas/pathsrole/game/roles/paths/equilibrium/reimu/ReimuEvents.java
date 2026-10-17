@@ -108,7 +108,7 @@ public class ReimuEvents {
             }
         });
         OnGameTrueStarted.EVENT.register((serverLevel) -> {
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)serverLevel);
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(serverLevel);
             if (gameWorld == null || !gameWorld.isRunning()) {
                 return;
             }
@@ -147,7 +147,7 @@ public class ReimuEvents {
             for (Map.Entry<BlockPos, DonationBoxDataManager.BoxInfo> entry : DonationBoxDataManager.getAllBoxes().entrySet()) {
                 boxesToRemove.add(entry.getKey());
             }
-            PathsRoleMod.LOGGER.info("[\u8d5b\u94b1\u7bb1] \u627e\u5230 {} \u4e2a\u8d5b\u94b1\u7bb1\u9700\u8981\u6e05\u9664", (Object)boxesToRemove.size());
+            PathsRoleMod.LOGGER.info("[\u8d5b\u94b1\u7bb1] \u627e\u5230 {} \u4e2a\u8d5b\u94b1\u7bb1\u9700\u8981\u6e05\u9664", boxesToRemove.size());
             for (BlockPos pos : boxesToRemove) {
                 level.destroyBlock(pos, false);
             }
@@ -162,7 +162,7 @@ public class ReimuEvents {
         OnPlayerDeath.EVENT.register((player, deathReason) -> {
             ReimuPlayerComponent dyingComp;
             ServerPlayer sp;
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)player.level());
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(player.level());
             if (gameWorld == null || !gameWorld.isRunning()) {
                 return;
             }
@@ -170,6 +170,7 @@ public class ReimuEvents {
                 dyingComp.stopFlying(true);
             }
             for (ServerPlayer sp2 : ((ServerLevel)player.level()).players()) {
+                if (sp2 == player) continue;
                 ReimuPlayerComponent comp = PathsroleComponents.getReimuComponent((Player)sp2);
                 if (comp == null || !gameWorld.isRole((Player)sp2, ModRoles.REIMU)) continue;
                 comp.setDeadPlayerCount(comp.getDeadPlayerCount() + 1);
@@ -205,17 +206,17 @@ public class ReimuEvents {
             }
             if (state.is(ModBlocks.DONATION_BOX)) {
                 if (DonationBoxDataManager.isMarked(player.getUUID())) {
-                    player.displayClientMessage((Component)Component.translatable((String)"message.reimu.marked_cannot_destroy").withStyle(ChatFormatting.RED), true);
+                    player.displayClientMessage(Component.translatable("message.reimu.marked_cannot_destroy").withStyle(ChatFormatting.RED), true);
                     return false;
                 }
                 if (player.isCreative() || player.isSpectator()) {
                     return true;
                 }
                 if (DonationBoxDataManager.getBoxInfo(pos) != null && DonationBoxDataManager.getBoxInfo((BlockPos)pos).ownerUuid != null && DonationBoxDataManager.getBoxInfo((BlockPos)pos).ownerUuid.equals(player.getUUID())) {
-                    player.displayClientMessage((Component)Component.translatable((String)"message.reimu.cannot_destroy_own_box").withStyle(ChatFormatting.RED), true);
+                    player.displayClientMessage(Component.translatable("message.reimu.cannot_destroy_own_box").withStyle(ChatFormatting.RED), true);
                     return false;
                 }
-                player.displayClientMessage((Component)Component.translatable((String)"message.reimu.cannot_destroy_box").withStyle(ChatFormatting.RED), true);
+                player.displayClientMessage(Component.translatable("message.reimu.cannot_destroy_box").withStyle(ChatFormatting.RED), true);
                 return false;
             }
             return true;
@@ -253,7 +254,7 @@ public class ReimuEvents {
             if (ReimuPlayerComponent.isPlayerInBarrier(player)) {
                 return false;
             }
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)player.level());
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(player.level());
             if (gameWorld != null && gameWorld.isRunning() && gameWorld.isRole(player, ModRoles.REIMU)) {
                 ReimuPlayerComponent comp = PathsroleComponents.getReimuComponent(player);
                 if (comp != null && comp.getStabilizationTimer() > 0) {
@@ -275,14 +276,14 @@ public class ReimuEvents {
             if (killer == null) {
                 return;
             }
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)victim.level());
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(victim.level());
             if (gameWorld == null || !gameWorld.isRunning()) {
                 return;
             }
             if (!gameWorld.isRole(victim, ModRoles.REIMU)) {
                 return;
             }
-            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)victim.level());
+            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(victim.level());
             if (wmc == null) {
                 return;
             }
@@ -292,118 +293,11 @@ public class ReimuEvents {
             killer.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 400, 0, false, true, true));
         });
         OnShieldBroken.EVENT.register((victim, killer) -> {
-            try {
-                if (killer == null) {
-                    PathsRoleMod.LOGGER.warn("[灵梦护盾] killer为null，跳过处理");
-                    return;
-                }
-                
-                if (victim == null || victim.level() == null) {
-                    PathsRoleMod.LOGGER.error("[灵梦护盾] victim或其level为null！");
-                    return;
-                }
-                
-                SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)victim.level());
-                if (gameWorld == null || !gameWorld.isRunning()) {
-                    return;
-                }
-                if (!gameWorld.isRole(victim, ModRoles.REIMU)) {
-                    return;
-                }
-                
-                ReimuPlayerComponent reimuComp = PathsroleComponents.getReimuComponent((Player)victim);
-                if (reimuComp != null) {
-                    reimuComp.shieldBreakerUUID = killer.getUUID();
-                    reimuComp.sync();
-                    
-                    if (victim instanceof ServerPlayer serverVictim) {
-                        try {
-                            serverVictim.displayClientMessage(
-                                Component.translatable("message.pathsrole.reimu.shield_broken", killer.getName())
-                                    .withStyle(ChatFormatting.RED), true);
-                        } catch (Exception e) {
-                            PathsRoleMod.LOGGER.error("[灵梦护盾] 向灵梦发送护盾破碎消息失败", e);
-                        }
-                    }
-                    
-                    if (killer instanceof ServerPlayer serverKiller) {
-                        try {
-                            ServerPlayNetworking.send(serverKiller, new ReimuShieldBreakPacket());
-                        } catch (Exception e) {
-                            PathsRoleMod.LOGGER.error("[灵梦护盾] 发送ShieldBreakPacket失败", e);
-                        }
-                    }
-                }
-                
-                SREPlayerShopComponent shop = null;
-                SREArmorPlayerComponent armor = null;
-                
-                try {
-                    shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)victim);
-                    armor = SREArmorPlayerComponent.KEY.get(victim);
-                } catch (Exception e) {
-                    PathsRoleMod.LOGGER.error("[灵梦护盾] 获取玩家组件时出错", e);
-                }
-
-                if (killer instanceof ServerPlayer) {
-                    ServerPlayer killerPlayer = (ServerPlayer)killer;
-                    
-                    final UUID killerUuid = killerPlayer.getUUID();
-                    final String killerName = killerPlayer.getName().getString();
-
-                    final int[] delayCounter = {0};
-                    final int targetDelay = 100;
-
-                    Runnable delayedWarning = new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                ServerPlayer currentKiller = killerPlayer.getServer() != null ? 
-                                    killerPlayer.getServer().getPlayerList().getPlayer(killerUuid) : null;
-                                
-                                if (currentKiller == null || !currentKiller.isAlive()) {
-                                    return;
-                                }
-
-                                delayCounter[0]++;
-                                if (delayCounter[0] < targetDelay) {
-                                    if (currentKiller.getServer() != null) {
-                                        currentKiller.getServer().execute(this);
-                                    }
-                                    return;
-                                }
-
-                                try {
-                                    currentKiller.displayClientMessage(
-                                        Component.literal("⚠ ").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
-                                            .append(Component.translatable("message.pathsrole.reimu.shield_breaker_warning")
-                                                .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD)), true);
-                                } catch (Exception e) {
-                                    PathsRoleMod.LOGGER.error("[灵梦护盾] 发送警告提示失败", e);
-                                }
-                            } catch (Exception e) {
-                                PathsRoleMod.LOGGER.error("[灵梦护盾] 延迟任务执行出错", e);
-                            }
-                        }
-                    };
-
-                    if (killerPlayer.getServer() != null) {
-                        killerPlayer.getServer().execute(delayedWarning);
-                    } else {
-                        PathsRoleMod.LOGGER.warn("[灵梦护盾] killerPlayer.getServer()为null，无法执行延迟任务");
-                    }
-                } else if (killer instanceof ServerPlayer serverKiller) {
-                    try {
-                        serverKiller.displayClientMessage(
-                            Component.translatable("message.pathsrole.reimu.shield_breaker_warning_rebought")
-                                .withStyle(ChatFormatting.GOLD), true);
-                    } catch (Exception e) {
-                        PathsRoleMod.LOGGER.error("[灵梦护盾] 发送重新购买提示失败", e);
-                    }
-                }
-            } catch (Exception e) {
-                PathsRoleMod.LOGGER.error("[灵梦护盾] OnShieldBroken事件处理发生严重错误！", e);
+            if (killer == null) {
+                PathsRoleMod.LOGGER.warn("[灵梦护盾] killer为null，跳过处理");
+                return;
             }
+            handleReimuShieldBreak(victim, killer);
         });
         ModifierAssigned.EVENT.register((player, modifier) -> {
             if (modifier.equals(SEModifiers.LOVERS) && player instanceof ServerPlayer sp) {
@@ -472,7 +366,7 @@ public class ReimuEvents {
             }
             Item patt0$temp = player.getMainHandItem().getItem();
             if (!(patt0$temp instanceof BlockItem) || (bi = (BlockItem)patt0$temp).getBlock() != ModBlocks.DONATION_BOX) {
-                player.displayClientMessage((Component)Component.translatable((String)"message.reimu.hold_donation_box").withStyle(ChatFormatting.RED), true);
+                player.displayClientMessage(Component.translatable("message.reimu.hold_donation_box").withStyle(ChatFormatting.RED), true);
                 return true;
             }
             ReimuPlayerComponent comp = PathsroleComponents.getReimuComponent((Player)player);
@@ -481,7 +375,7 @@ public class ReimuEvents {
             }
             int actualCount = DonationBoxDataManager.countOwnedBoxes(player.getUUID());
             if (actualCount >= 3) {
-                player.displayClientMessage((Component)Component.translatable((String)"message.reimu.max_boxes").withStyle(ChatFormatting.RED), true);
+                player.displayClientMessage(Component.translatable("message.reimu.max_boxes").withStyle(ChatFormatting.RED), true);
                 return true;
             }
             HitResult hitResult = player.pick(5.0, 1.0f, false);
@@ -505,7 +399,7 @@ public class ReimuEvents {
             comp.incrementDonationBoxCount();
             player.getMainHandItem().shrink(1);
             return true;
-        }).cooldownSeconds(0).shifted(true).showOnHud(false).build(), RoleSkill.skill((ResourceLocation)PathsRoleMod.id("reimu_barrier"), (String)"skill.pathsrole.reimu_barrier", context -> {
+        }).cooldownSeconds(0).shifted(true).showOnHud(false).build(), RoleSkill.skill(PathsRoleMod.id("reimu_barrier"), "skill.pathsrole.reimu_barrier", context -> {
             ServerPlayer player = context.player();
             if (player.isShiftKeyDown()) {
                 return false;
@@ -519,7 +413,7 @@ public class ReimuEvents {
                 return false;
             }
             return comp.activateBarrier(player, false);
-        }).cooldownSeconds(20).showOnHud(true).announceToSelf(true).build(), RoleSkill.skill((ResourceLocation)PathsRoleMod.id("reimu_flying"), (String)"skill.noellesroles.reimu", context -> {
+        }).cooldownSeconds(20).showOnHud(true).announceToSelf(true).build(), RoleSkill.skill(PathsRoleMod.id("reimu_flying"), "skill.noellesroles.reimu", context -> {
             ServerPlayer player = context.player();
             if (player.isShiftKeyDown()) {
                 return false;
@@ -552,7 +446,7 @@ public class ReimuEvents {
             player.displayClientMessage(Component.translatable("message.reimu.already_donated").withStyle(ChatFormatting.RED), true);
             return InteractionResult.FAIL;
         }
-        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)player);
+        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get(player);
         if (shop == null) {
             PathsRoleMod.LOGGER.error("[塞钱箱] {} 的商店组件为空！", player.getName().getString());
             return InteractionResult.FAIL;
@@ -567,7 +461,7 @@ public class ReimuEvents {
         shop.sync();
         DonationBoxDataManager.markPlayer(player.getUUID());
         
-        if (be.getOwnerUuid() != null && (reimu = player.level().getPlayerByUUID(be.getOwnerUuid())) != null && gameWorld.isRole(reimu, ModRoles.REIMU) && (reimuShop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)reimu)) != null) {
+        if (be.getOwnerUuid() != null && (reimu = player.level().getPlayerByUUID(be.getOwnerUuid())) != null && gameWorld.isRole(reimu, ModRoles.REIMU) && (reimuShop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get(reimu)) != null) {
             reimuShop.setBalance(reimuShop.balance + 30);
             reimuShop.sync();
         } else {
@@ -584,7 +478,7 @@ public class ReimuEvents {
     }
 
     private static void grantFallbackEffect(ServerPlayer player, int effect, SREGameWorldComponent gameWorld) {
-        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)player);
+        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get(player);
         if (shop == null) {
             return;
         }
@@ -628,12 +522,12 @@ public class ReimuEvents {
             case 2: {
                 shop.setBalance(shop.balance + 50);
                 shop.sync();
-                player.displayClientMessage((Component)Component.translatable((String)"message.reimu.effect.coins_50").withStyle(ChatFormatting.GOLD), true);
+                player.displayClientMessage(Component.translatable("message.reimu.effect.coins_50").withStyle(ChatFormatting.GOLD), true);
                 break;
             }
             case 3: {
                 player.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 6000, 0, false, true, true));
-                player.displayClientMessage((Component)Component.translatable((String)"message.reimu.effect.slow_falling").withStyle(ChatFormatting.GOLD), true);
+                player.displayClientMessage(Component.translatable("message.reimu.effect.slow_falling").withStyle(ChatFormatting.GOLD), true);
                 break;
             }
             case 4: {
@@ -642,7 +536,7 @@ public class ReimuEvents {
                 break;
             }
             case 5: {
-                WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)player.level());
+                WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(player.level());
                 if (wmc != null) {
                     var modifier = HMLModifiers.getModifier(StupidExpress.id("feather"));
                     if (modifier != null) {
@@ -652,6 +546,107 @@ public class ReimuEvents {
                 player.displayClientMessage(Component.translatable("message.reimu.effect.feather").withStyle(ChatFormatting.WHITE), true);
                 break;
             }
+        }
+    }
+
+    private static void handleReimuShieldBreak(Player victim, Player killer) {
+        try {
+            if (victim == null || victim.level() == null) {
+                PathsRoleMod.LOGGER.error("[灵梦护盾] victim或其level为null！");
+                return;
+            }
+
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(victim.level());
+            if (gameWorld == null || !gameWorld.isRunning()) {
+                return;
+            }
+            if (!gameWorld.isRole(victim, ModRoles.REIMU)) {
+                return;
+            }
+
+            ReimuPlayerComponent reimuComp = PathsroleComponents.getReimuComponent(victim);
+            if (reimuComp != null) {
+                reimuComp.shieldBreakerUUID = killer.getUUID();
+                reimuComp.sync();
+
+                if (victim instanceof ServerPlayer serverVictim) {
+                    try {
+                        serverVictim.displayClientMessage(
+                            Component.translatable("message.pathsrole.reimu.shield_broken", killer.getName())
+                                .withStyle(ChatFormatting.RED), true);
+                    } catch (Exception e) {
+                        PathsRoleMod.LOGGER.error("[灵梦护盾] 向灵梦发送护盾破碎消息失败", e);
+                    }
+                }
+
+                if (killer instanceof ServerPlayer serverKiller) {
+                    try {
+                        ServerPlayNetworking.send(serverKiller, new ReimuShieldBreakPacket());
+                    } catch (Exception e) {
+                        PathsRoleMod.LOGGER.error("[灵梦护盾] 发送ShieldBreakPacket失败", e);
+                    }
+                }
+            }
+
+            SREPlayerShopComponent shop = null;
+            SREArmorPlayerComponent armor = null;
+
+            try {
+                shop = SREPlayerShopComponent.KEY.get(victim);
+                armor = SREArmorPlayerComponent.KEY.get(victim);
+            } catch (Exception e) {
+                PathsRoleMod.LOGGER.error("[灵梦护盾] 获取玩家组件时出错", e);
+            }
+
+            if (killer instanceof ServerPlayer) {
+                ServerPlayer killerPlayer = (ServerPlayer)killer;
+
+                final UUID killerUuid = killerPlayer.getUUID();
+
+                final int[] delayCounter = {0};
+                final int targetDelay = 100;
+
+                Runnable delayedWarning = new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            ServerPlayer currentKiller = killerPlayer.getServer() != null ?
+                                killerPlayer.getServer().getPlayerList().getPlayer(killerUuid) : null;
+
+                            if (currentKiller == null || !currentKiller.isAlive()) {
+                                return;
+                            }
+
+                            delayCounter[0]++;
+                            if (delayCounter[0] < targetDelay) {
+                                if (currentKiller.getServer() != null) {
+                                    currentKiller.getServer().execute(this);
+                                }
+                                return;
+                            }
+
+                            try {
+                                currentKiller.displayClientMessage(
+                                    Component.literal("⚠ ").withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD)
+                                        .append(Component.translatable("message.pathsrole.reimu.shield_breaker_warning")
+                                            .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD)), true);
+                            } catch (Exception e) {
+                                PathsRoleMod.LOGGER.error("[灵梦护盾] 发送警告提示失败", e);
+                            }
+                        } catch (Exception e) {
+                            PathsRoleMod.LOGGER.error("[灵梦护盾] 延迟任务执行出错", e);
+                        }
+                    }
+                };
+
+                if (killerPlayer.getServer() != null) {
+                    killerPlayer.getServer().execute(delayedWarning);
+                } else {
+                    PathsRoleMod.LOGGER.warn("[灵梦护盾] killerPlayer.getServer()为null，无法执行延迟任务");
+                }
+            }
+        } catch (Exception e) {
+            PathsRoleMod.LOGGER.error("[灵梦护盾] 处理护盾破碎事件发生严重错误！", e);
         }
     }
 }

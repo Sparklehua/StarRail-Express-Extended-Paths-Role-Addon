@@ -21,6 +21,8 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import org.agmas.pathsrole.client.screen.ShipperBookScreen;
 import org.agmas.pathsrole.game.roles.paths.elation.shipper.ShipperPlayerComponent;
+import org.agmas.pathsrole.init.ModRoles;
+import io.wifi.starrailexpress.client.SREClient;
 
 public class ShipperBookItem
 extends Item {
@@ -74,7 +76,7 @@ extends Item {
         super.appendHoverText(stack, context, tooltipComponents, tooltipFlag);
         
         if (!Screen.hasShiftDown()) {
-            tooltipComponents.add(Component.literal("按住 [Shift] 查看详情")
+            tooltipComponents.add(Component.translatable("tooltip.pathsrole.shipper_book.hold_shift")
                 .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC));
             return;
         }
@@ -100,7 +102,9 @@ extends Item {
                 if (targetPlayer == user) {
                     return;
                 }
-                storePlayerName(stack, targetPlayer.getName().getString());
+                if (SREClient.gameComponent != null && SREClient.gameComponent.isRole(user, ModRoles.SHIPPER)) {
+                    return;
+                }
                 return;
             }
             this.openBookScreen(stack);
@@ -108,7 +112,7 @@ extends Item {
 
     @Environment(value=EnvType.CLIENT)
     private void openBookScreen(ItemStack stack) {
-        ShipperPlayerComponent shipperComp = ShipperPlayerComponent.KEY.get(Minecraft.getInstance().player);
+        ShipperPlayerComponent shipperComp = ShipperPlayerComponent.KEY.getNullable(Minecraft.getInstance().player);
         if (shipperComp == null) {
             return;
         }

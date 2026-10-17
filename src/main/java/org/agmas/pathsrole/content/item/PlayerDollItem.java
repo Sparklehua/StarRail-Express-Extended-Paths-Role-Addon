@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.InteractionResultHolder;
@@ -17,6 +18,7 @@ import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import org.agmas.noellesroles.init.NRSounds;
 import org.agmas.pathsrole.content.block.PlayerDollBlockEntity;
 import org.agmas.pathsrole.util.GameProfileHelper;
 import software.bernie.geckolib.animatable.GeoItem;
@@ -127,20 +129,29 @@ public class PlayerDollItem extends BlockItem implements GeoItem {
                         dollEntity.setSkinUrl(skinUrl);
                     }
 
+                    if (tag.contains("SkinData")) {
+                        String skinData = tag.getString("SkinData");
+                        if (skinData != null && !skinData.isEmpty()) {
+                            dollEntity.setSkinData(skinData);
+                        }
+                    }
+
                     if (tag.contains("Poses")) {
                         CompoundTag poses = tag.getCompound("Poses");
-                        int count = poses.getAllKeys().size();
+                        int count = Math.min(poses.getAllKeys().size(), 30);
                         if (count > 0) {
                             float[] boneData = new float[count];
                             for (String key : poses.getAllKeys()) {
                                 try {
                                     int idx = Integer.parseInt(key.substring(1));
-                                    boneData[idx] = poses.getFloat(key);
+                                    if (idx >= 0 && idx < count) {
+                                        boneData[idx] = poses.getFloat(key);
+                                    }
                                 } catch (Exception ignored) {}
                             }
                             dollEntity.boneData = boneData;
-                            if (count > 15) {
-                                dollEntity.modelScale = net.minecraft.util.Mth.clamp(boneData[15], 0.1f, 3.0f);
+                            if (count > 21) {
+                                dollEntity.modelScale = net.minecraft.util.Mth.clamp(boneData[21], 0.1f, 3.0f);
                             }
                         }
                     }
@@ -178,6 +189,10 @@ public class PlayerDollItem extends BlockItem implements GeoItem {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         ItemStack currentHelmet = player.getItemBySlot(EquipmentSlot.HEAD);
+
+        if (!level.isClientSide() && NRSounds.BAKA_BAKA != null) {
+            level.playSound(null, player.blockPosition(), NRSounds.BAKA_BAKA, SoundSource.PLAYERS, 1.0f, 1.0f);
+        }
 
         if (currentHelmet.isEmpty()) {
             player.setItemSlot(EquipmentSlot.HEAD, stack.copy());

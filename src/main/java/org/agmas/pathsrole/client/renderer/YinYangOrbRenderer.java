@@ -41,7 +41,7 @@ extends EntityRenderer<YinYangOrbEntity> {
         poseStack.mulPose(cameraRotation);
         float scale = radius * 2.0f * 1.4f;
         poseStack.scale(scale, scale, scale);
-        VertexConsumer vertexConsumer = bufferSource.getBuffer(RenderType.entityTranslucent((ResourceLocation)TEXTURE));
+        VertexConsumer vertexConsumer = bufferSource.getBuffer(RenderType.entityTranslucent(TEXTURE));
         Matrix4f matrix = poseStack.last().pose();
         float half = 0.5f;
         vertexConsumer.addVertex(matrix, -half, -half, 0.0f).setColor(255, 255, 255, 255).setUv(0.0f, 0.0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(packedLight).setNormal(0.0f, 0.0f, 1.0f);

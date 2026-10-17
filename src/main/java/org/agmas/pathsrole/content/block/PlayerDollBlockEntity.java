@@ -25,6 +25,7 @@ public class PlayerDollBlockEntity extends BlockEntity implements GeoBlockEntity
     private GameProfile ownerProfile = null;
     private String playerName = "";
     private String skinUrl = "";
+    private String skinData = null;
     private ResourceLocation skinTexture = null;
     private boolean skinLoadingAttempted = false;
     public double squash;
@@ -100,6 +101,20 @@ public class PlayerDollBlockEntity extends BlockEntity implements GeoBlockEntity
         }
     }
 
+    public String getSkinData() {
+        return skinData;
+    }
+
+    public void setSkinData(String data) {
+        this.skinData = data;
+        this.skinTexture = null;
+        this.skinLoadingAttempted = false;
+        this.setChanged();
+        if (level != null) {
+            level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        }
+    }
+
     public ResourceLocation getSkinTexture() {
         return skinTexture;
     }
@@ -130,10 +145,15 @@ public class PlayerDollBlockEntity extends BlockEntity implements GeoBlockEntity
         if (this.skinUrl != null && !this.skinUrl.isEmpty()) {
             tag.putString("SkinUrl", this.skinUrl);
         }
+        if (this.skinData != null && !this.skinData.isEmpty()) {
+            tag.putString("SkinData", this.skinData);
+        }
         if (this.boneData != null && this.boneData.length > 0) {
             CompoundTag poses = new CompoundTag();
-            for (int i = 0; i < this.boneData.length; i++) {
-                poses.putFloat("b" + i, this.boneData[i]);
+            for (int i = 0; i < Math.min(this.boneData.length, 30); i++) {
+                float v = this.boneData[i];
+                if (Float.isNaN(v) || Float.isInfinite(v)) v = 0f;
+                poses.putFloat("b" + i, v);
             }
             tag.put("Poses", poses);
         }
@@ -174,6 +194,8 @@ public class PlayerDollBlockEntity extends BlockEntity implements GeoBlockEntity
         } catch (Exception e) {
             this.ownerProfile = null;
         }
+        String prevName = this.playerName;
+        String prevSkinUrl = this.skinUrl;
         if (tag.contains("PlayerName")) {
             String name = tag.getString("PlayerName");
             if (!name.isEmpty()) {
@@ -186,22 +208,36 @@ public class PlayerDollBlockEntity extends BlockEntity implements GeoBlockEntity
                 this.skinUrl = url;
             }
         }
-        this.skinLoadingAttempted = false;
-        this.skinTexture = null;
+        if (tag.contains("SkinData")) {
+            String data = tag.getString("SkinData");
+            if (!data.isEmpty()) {
+                this.skinData = data;
+            }
+        }
+        boolean nameChanged = (prevName == null) ? (this.playerName != null && !this.playerName.isEmpty())
+                : !prevName.equals(this.playerName);
+        boolean urlChanged = (prevSkinUrl == null) ? (this.skinUrl != null && !this.skinUrl.isEmpty())
+                : !prevSkinUrl.equals(this.skinUrl);
+        if (nameChanged || urlChanged) {
+            this.skinLoadingAttempted = false;
+            this.skinTexture = null;
+        }
         if (tag.contains("Poses")) {
             CompoundTag poses = tag.getCompound("Poses");
-            int count = poses.getAllKeys().size();
+            int count = Math.min(poses.getAllKeys().size(), 30);
             if (count > 0) {
                 this.boneData = new float[count];
                 for (String key : poses.getAllKeys()) {
                     try {
                         int idx = Integer.parseInt(key.substring(1));
-                        this.boneData[idx] = poses.getFloat(key);
+                        if (idx >= 0 && idx < count) {
+                            this.boneData[idx] = poses.getFloat(key);
+                        }
                     } catch (Exception ignored) {
                     }
                 }
-                if (count > 15) {
-                    this.modelScale = Mth.clamp(this.boneData[15], 0.1f, 3.0f);
+                if (count > 21) {
+                    this.modelScale = Mth.clamp(this.boneData[21], 0.1f, 3.0f);
                 }
             }
         }
@@ -241,6 +277,18 @@ public class PlayerDollBlockEntity extends BlockEntity implements GeoBlockEntity
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers) {
+    }
+
+    @Override
+    public void setRemoved() {
+        super.setRemoved();
+        if (level != null && level.isClientSide() && skinData != null && !skinData.isEmpty()) {
+            ResourceLocation texId = ResourceLocation.fromNamespaceAndPath("pathsrole",
+                    "skins/cached_" + Integer.toHexString(skinData.hashCode()));
+            org.agmas.pathsrole.client.renderer.SkinTextureManager.releaseTexture(texId);
+        }
+        this.skinTexture = null;
+        this.skinData = null;
     }
 
     @Override

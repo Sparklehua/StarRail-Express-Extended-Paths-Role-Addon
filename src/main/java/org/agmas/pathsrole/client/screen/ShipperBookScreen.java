@@ -97,8 +97,11 @@ extends Screen {
         if (this.minecraft == null || this.minecraft.player == null) {
             return;
         }
-        ShipperPlayerComponent comp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)this.minecraft.player);
-        if (comp != null) {
+        boolean isShipperRole = SREClient.gameComponent != null
+            && SREClient.gameComponent.isRole(this.minecraft.player, org.agmas.pathsrole.init.ModRoles.SHIPPER);
+
+        if (isShipperRole) {
+            ShipperPlayerComponent comp = ShipperPlayerComponent.KEY.get(this.minecraft.player);
             for (UUID uuid : comp.getPairedLovers()) {
                 this.markedPlayerNames.add(this.getPlayerNameWithRole(uuid, comp));
             }
@@ -149,13 +152,12 @@ extends Screen {
         this.currentPage = 0;
         ShipperPlayerComponent shipperComp = null;
         if (this.minecraft != null && this.minecraft.player != null) {
-            shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)this.minecraft.player);
+            shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(this.minecraft.player);
         }
         if (shipperComp != null) {
             if (shipperComp.isRageActive() && shipperComp.getRageKiller() != null) {
                 this.currentText = Component.translatable("message.pathsrole.shipper.rage_triggered").getString();
                 this.allLines = this.font.split(Component.literal(this.currentText), 120);
-                Objects.requireNonNull(this.font);
                 this.linesPerPage = Math.max(1, 100 / 9);
                 this.totalPages = Math.max(1, (this.allLines.size() + this.linesPerPage - 1) / this.linesPerPage);
                 return;
@@ -166,7 +168,6 @@ extends Screen {
                     this.currentText = this.currentText + "\n  - " + this.getPlayerNameWithRole(absorbedUUID, shipperComp);
                 }
                 this.allLines = this.font.split(Component.literal(this.currentText), 120);
-                Objects.requireNonNull(this.font);
                 this.linesPerPage = Math.max(1, 100 / 9);
                 this.totalPages = Math.max(1, (this.allLines.size() + this.linesPerPage - 1) / this.linesPerPage);
                 return;
@@ -195,7 +196,6 @@ extends Screen {
         }
         this.currentText = result;
         this.allLines = this.font.split(Component.literal(this.currentText), 120);
-        Objects.requireNonNull(this.font);
         this.linesPerPage = Math.max(1, 100 / 9);
         this.totalPages = Math.max(1, (this.allLines.size() + this.linesPerPage - 1) / this.linesPerPage);
     }
@@ -209,7 +209,6 @@ extends Screen {
             int endLine = Math.min(startLine + this.linesPerPage, this.allLines.size());
             for (int i = startLine; i < endLine; ++i) {
                 guiGraphics.drawString(this.font, this.allLines.get(i), this.bookX + 36, lineY, 0x000000, false);
-                Objects.requireNonNull(this.font);
                 lineY += 9;
             }
             if (this.totalPages > 1) {

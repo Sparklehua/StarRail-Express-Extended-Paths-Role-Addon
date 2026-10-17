@@ -433,17 +433,20 @@ ClientTickingComponent {
         SREGameWorldComponent gameWorld = SREGameWorldComponent.KEY.get(this.player.level());
         if (gameWorld == null || !gameWorld.isRunning()) return;
         if (!gameWorld.isRole(this.player, ModRoles.SHION)) return;
+        if (!GameUtils.isPlayerAliveAndSurvival(this.player)) return;
 
-        if (!GameUtils.isPlayerAliveAndSurvival(this.player)) {
-            return;
-        }
+        tickBegging();
+        tickBowlSitting();
+        tickShelter();
+        tickMisfortuneAndDebt(gameWorld);
+        checkWinCondition();
+    }
 
-        // ── 乞讨冷却 ──
+    private void tickBegging() {
         if (this.begCooldown > 0) {
             this.begCooldown--;
         }
 
-        // ── 坐碗按玩家冷却递减 ──
         if (!this.perPlayerBegCooldowns.isEmpty()) {
             this.perPlayerBegCooldowns.entrySet().removeIf(entry -> {
                 int remaining = entry.getValue() - 1;
@@ -453,7 +456,6 @@ ClientTickingComponent {
             });
         }
 
-        // ── 坐碗请求超时检测 ──
         if (!this.begRequestTimes.isEmpty()) {
             this.begRequestTimes.entrySet().removeIf(entry -> {
                 int remaining = entry.getValue() - 1;
@@ -479,7 +481,6 @@ ClientTickingComponent {
             });
         }
 
-        // ── 乞讨目标清理（目标离线则清除） ──
         if (this.begTarget != null) {
             Player target = ((ServerLevel) this.player.level()).getPlayerByUUID(this.begTarget);
             if (target == null || !GameUtils.isPlayerAliveAndSurvival(target)) {
@@ -487,13 +488,13 @@ ClientTickingComponent {
                 this.sync();
             }
         }
+    }
 
-        // ── 碗冷却 ──
+    private void tickBowlSitting() {
         if (this.bowlCooldown > 0) {
             this.bowlCooldown--;
         }
 
-        // ── 坐碗计时 ──
         if (this.isSitting && this.sittingTicks > 0) {
             this.sittingTicks--;
             if (this.sittingTicks <= 0) {
@@ -508,8 +509,9 @@ ClientTickingComponent {
                 }
             }
         }
+    }
 
-        // ── 庇护计时 ──
+    private void tickShelter() {
         if (this.shelterTicks > 0 && this.shelteredPlayer != null) {
             this.shelterTicks--;
             if (this.shelterTicks <= 0) {
@@ -517,20 +519,18 @@ ClientTickingComponent {
                 this.sync();
             }
         }
+    }
 
-        // ── 不幸计时（每 tick 递减，1200 tick = 60 秒） ──
+    private void tickMisfortuneAndDebt(SREGameWorldComponent gameWorld) {
         if (this.misfortuneTimer > 0) {
             this.misfortuneTimer--;
         }
 
-        // ── 每 20 tick（1秒）检查 ──
         if (this.player.tickCount % 20 == 0) {
-            // 不幸触发（timer=0 时触发）
             if (this.misfortuneTimer <= 0) {
                 tickMisfortune(gameWorld);
             }
 
-            // 负债值显示
             if (this.debtTarget > 0 && this.player instanceof ServerPlayer sp) {
                 sp.displayClientMessage(
                         Component.translatable("message.pathsrole.shion.debt_progress",
@@ -539,9 +539,6 @@ ClientTickingComponent {
                         true);
             }
         }
-
-        // ── 胜利检查 ──
-        this.checkWinCondition();
     }
 
     private void tickMisfortune(SREGameWorldComponent gameWorld) {

@@ -23,7 +23,6 @@
   "skill.pathsrole.reimu_place_box": "Place Donation Box",
   "skill.pathsrole.reimu_shrine": "Shrine Teleport",
   "item.pathsrole.shrine": "Shrine",
-  "item.pathsrole.shrine_entrance": "Shrine Entrance",
 
   "item.pathsrole.broom": "Bamboo Broom",
   "item.pathsrole.ban_list": "Ban List",
@@ -43,6 +42,7 @@
   "screen.pathsrole.doll_craft.name_hint": "Enter premium player name...",
   "screen.pathsrole.doll_craft.craft": "Craft",
   "screen.pathsrole.doll_craft.crafting": "Crafting doll for %s...",
+  "screen.pathsrole.doll_craft.clear_data": "Clear Data",
 
   "gui.pathsrole.ban_list.title": "Shrine Management Interface",
   "gui.pathsrole.ban_list.detail": "View Details",
@@ -157,6 +157,7 @@
   "message.pathsrole.shipper.betrayal_hud": "You broke the Shipper's expectations, he is glaring at you (Slowness remaining %s seconds)",
   "message.pathsrole.shipper.rage_triggered": "Someone killed your CP! You are furious... Hold the Shipper Book and right-click the killer to absorb them into the book!",
   "message.pathsrole.shipper.rage_clear_hint": "Enraged! You must right-click the killer with the Shipper Book to absorb them before you can continue shipping!",
+  "message.pathsrole.shipper.rage_end_cooldown": "Cooling down… Wait %s seconds before binding a CP",
   "message.pathsrole.shipper.observation_cooldown": "Observation mode switching on cooldown (%s seconds remaining)",
   "message.pathsrole.shipper.observation_toggle": "Observation Mode %s",
   "message.pathsrole.shipper.safe_time_blocked": "Cannot pair CP during safe time. Please wait for the safe time to end.",
@@ -381,5 +382,117 @@
 
   "==================== Shion - Death Messages ====================": "",
   "death_reason.pathsrole.shion_misfortune": "was drained dry by the poverty god's misfortune",
-  "death_reason.pathsrole.shion_curse": "succumbed to the poverty god's curse"
+  "death_reason.pathsrole.shion_curse": "succumbed to the poverty god's curse",
+
+  "==================== Yoshikage Kira & Josuke Higashikata ====================": "",
+  "item.pathsrole.kira_sheer_heart_attack": "Sheer Heart Attack",
+  "item.pathsrole.kira_sheer_heart_attack.description": "Summons an auto-tracking explosive entity",
+  "item.pathsrole.detonate_button": "Detonate Button",
+  "key.pathsrole.recall_sheer_heart": "Recall Sheer Heart",
+  "key.categories.pathsrole.kira": "Kira",
+
+  "star.role.pathsrole.kira": "Yoshikage Kira",
+  "star.role.pathsrole.kira.desc": "Killer faction. Right-click empty-handed to mark players (10 coins/person, max 3). Marked targets are silenced and their position is exposed. Open inventory and click detonate button to detonate all marked targets (90 coins/person, kill reward 40 coins). Press G to mark current position for Bites the Dust - upon death, rewind to marked position with full HP, all players teleported to room spawn, game time rewinds 3 minutes (3/7/12/15 kills unlock 1/2/3/4 uses). Buy Sheer Heart Attack from shop (125 coins), auto-tracks targets and explodes, crouch + V to recall.",
+  "star.role.pathsrole.josuke": "Josuke Higashikata",
+  "star.role.pathsrole.josuke.desc": "Sheriff faction. Use Crazy Diamond to punch players 3 consecutive times for a kill. Starts with a shield. Shield break releases a shockwave.",
+
+  "role.pathsrole.kira": "Yoshikage Kira",
+  "role.pathsrole.josuke": "Josuke Higashikata",
+
+  "announcement.star.role.pathsrole.kira": "Yoshikage Kira",
+  "announcement.star.goals.pathsrole.kira": "Use Killer Queen's abilities to eliminate all enemies. Right-click empty-handed to mark | Inventory detonate button | Press G to mark Bites the Dust position | Crouch + V to recall Sheer Heart",
+  "info.screen.roleid.pathsrole.kira": "Yoshikage Kira - Killer Faction\n\n[Mark] Right-click empty-handed on players, costs 10 coins, max 3 simultaneous marks. Marked targets are silenced + position exposed\n[Detonate] Click detonate button in inventory, costs 90 coins/person, explosive kill, reward 40 coins/person, 5s cooldown\n[Bites the Dust] Press G to mark current position, upon death rewind and restore full HP, all players teleported to room spawn, game time rewinds 3 minutes. 3 kills→1 use, 7→2, 12→3, 15→4\n[Sheer Heart Attack] Buy from shop 125 coins, auto-tracks targets within 20 blocks, expands and explodes within 3 blocks, radius 5 blocks, crouch+V to recall\n[Shop] Fake Gun 10 coins | Blackout 100 coins | Lockpick 80 coins | Knife 105 coins | Sheer Heart 125 coins",
+
+  "announcement.star.role.kira": "Yoshikage Kira",
+  "announcement.star.goals.kira": "Use Killer Queen's abilities to eliminate all enemies. Right-click empty-handed to mark | Inventory detonate button | Press G to mark Bites the Dust position | Crouch + V to recall Sheer Heart",
+  "info.screen.roleid.kira": "Yoshikage Kira - Killer Faction\n\n[Mark] Right-click empty-handed on players, costs 10 coins, max 3 simultaneous marks. Marked targets are silenced + position exposed\n[Detonate] Click detonate button in inventory, costs 90 coins/person, explosive kill, reward 40 coins/person, 5s cooldown\n[Bites the Dust] Press G to mark current position, upon death rewind and restore full HP, all players teleported to room spawn, game time rewinds 3 minutes. 3 kills→1 use, 7→2, 12→3, 15→4\n[Sheer Heart Attack] Buy from shop 125 coins, auto-tracks targets within 20 blocks, expands and explodes within 3 blocks, radius 5 blocks, crouch+V to recall\n[Shop] Fake Gun 10 coins | Blackout 100 coins | Lockpick 80 coins | Knife 105 coins | Sheer Heart 125 coins",
+
+  "announcement.star.role.pathsrole.josuke": "Josuke Higashikata",
+  "announcement.star.goals.pathsrole.josuke": "As a sheriff faction member, use Crazy Diamond combo punches to defeat enemies.",
+  "info.screen.roleid.pathsrole.josuke": "Josuke Higashikata - Sheriff Faction - Occupies one sheriff slot. Starts with an absorption shield (1 layer). Use Crazy Diamond to punch the same player 3 consecutive times for a kill. Skill key clears Kira's marks and status effects. Right-click corpses to revive players to their original role.",
+
+  "announcement.star.role.josuke": "Josuke Higashikata",
+  "announcement.star.goals.josuke": "As a sheriff faction member, use Crazy Diamond combo punches to defeat enemies.",
+  "info.screen.roleid.josuke": "Josuke Higashikata - Sheriff Faction - Occupies one sheriff slot. Starts with an absorption shield (1 layer). Use Crazy Diamond to punch the same player 3 consecutive times for a kill. Skill key clears Kira's marks and status effects. Right-click corpses to revive players to their original role.",
+
+  "message.pathsrole.kira.already_marked": "Target is already marked",
+  "message.pathsrole.kira.max_marks_reached": "Maximum marks reached (%d/%d)",
+  "message.pathsrole.kira.mark_cooldown": "Mark cooldown, %d seconds remaining",
+  "message.pathsrole.kira.mark_removed_target_dead": "Target has died or is spectating, mark removed",
+  "message.pathsrole.kira.marked_success": "Successfully marked %s! Current marks: %d/%d",
+  "message.pathsrole.kira.not_marked": "Target is not marked",
+  "message.pathsrole.kira.detonate_cooldown": "Detonate cooldown, %d seconds remaining",
+  "message.pathsrole.kira.detonated": "Successfully detonated %s!",
+  "message.pathsrole.kira.detonated_all": "Successfully detonated all marks, %d kills total!",
+  "message.pathsrole.kira.no_marks": "No marks to detonate",
+  "message.pathsrole.kira.no_valid_targets": "No valid detonation targets",
+  "message.pathsrole.kira.not_teammate": "Can only use on yourself or killer teammates",
+  "message.pathsrole.kira.jeb_added": "Silenced %s",
+  "message.pathsrole.kira.jeb_removed": "Unsilenced %s",
+  "message.pathsrole.kira.jeb_added_auto": "%s has been automatically silenced",
+  "message.pathsrole.kira.jeb_received": "You have been marked and silenced by Yoshikage Kira!",
+  "message.pathsrole.kira.bites_the_dust_rollback": "Bites the Dust activated! Yoshikage Kira has rewound successfully",
+  "message.pathsrole.kira.bites_the_dust_unlocked": "Bites the Dust unlocked! Kills: %d, Available uses: %d/%d",
+  "message.pathsrole.kira.bites_the_dust_activated": "Bites the Dust activated! Remaining uses: %d",
+  "message.pathsrole.kira.safe_time_cannot_mark": "Cannot mark during safe time",
+  "message.pathsrole.kira.position_marked": "Position marked! Will return here when Bites the Dust activates",
+  "message.pathsrole.kira.cannot_toggle_jeb": "Can only toggle silence on yourself or killer teammates",
+  "message.pathsrole.kira.backpack_cannot_mark": "Cannot mark players from backpack, right-click empty-handed on a player to mark",
+  "message.pathsrole.kira.recalled_sheer_heart": "Sheer Heart recalled!",
+
+  "message.pathsrole.sheer_heart.cooldown": "Sheer Heart cooldown, %d seconds remaining",
+  "message.pathsrole.sheer_heart.already_active": "Sheer Heart is already active",
+  "message.pathsrole.sheer_heart.cannot_spawn": "Cannot spawn Sheer Heart at this location!",
+
+  "message.pathsrole.josuke.clear_kira": "Cleared all status effects from Yoshikage Kira",
+  "message.pathsrole.josuke.self_cleared": "Cleared Kira's status effects from yourself",
+  "message.pathsrole.josuke.self_nothing": "No Kira status effects to clear from yourself",
+  "message.pathsrole.josuke.cleared": "Cleared Kira's marks from %s",
+  "message.pathsrole.josuke.not_marked": "This player is not marked by Yoshikage Kira",
+  "message.pathsrole.josuke.revived": "%s has been revived by Crazy Diamond",
+  "message.pathsrole.josuke.death_too_old": "This player has been dead for more than 10 seconds, cannot revive",
+  "message.pathsrole.josuke.penalty": "Josuke is present, cannot view role info for 30 seconds after death",
+  "message.pathsrole.josuke.kira_nearby": "You sense a Stand user nearby",
+  "message.pathsrole.josuke.no_target": "No available target",
+  "message.pathsrole.josuke.attack.3": "💀 Consecutive strikes fatal!",
+  "message.pathsrole.josuke.attack.general": "Strike %s",
+
+  "death_reason.pathsrole.kira_bomb": "was blown up by Kira's bomb",
+
+  "hud.pathsrole.kira.marked_player": "Marked: %s",
+  "hud.pathsrole.kira.player_selection": "Select player to mark or detonate",
+  "hud.pathsrole.kira.kill_count": "Kills: %d",
+  "hud.pathsrole.kira.bites_the_dust": "Bites the Dust: %d/%d",
+  "hud.pathsrole.kira.position_marked": "Position marked",
+  "hud.pathsrole.kira.detonate_cooldown": "Detonate CD: %ds",
+  "hud.pathsrole.kira.mark_count": "Marks: %d/%d",
+  "hud.pathsrole.kira.mark_cooldown": "Mark CD: %ds",
+  "hud.pathsrole.kira.mark_ready": "Mark: Ready",
+
+  "hud.pathsrole.josuke.skill_hint": "Press %s to clear self silence/JEB | Target player to clear marks",
+  "hud.pathsrole.josuke.revive_cooldown": "Revive CD: %ss",
+  "hud.pathsrole.josuke.revive_ready": "Revive: Ready",
+
+  "hud.pathsrole.general.dead": "Dead",
+  "hud.pathsrole.general.killer_friend": "Killer Teammate",
+
+  "=========== Pig ============": "",
+  "star.role.pathsrole.pig": "Pig",
+  "star.role.pathsrole.pig.desc": "Abundance pure neutral. Has three layers of thick skin. Cannot use/pick up items. Skill key 2 charges forward.",
+  "role.pathsrole.pig": "Pig",
+  "role.pathsrole.pig.description": "A pure neutral pig, unable to use or pick up any items, with thick pig skin requiring three deaths to truly die.",
+  "role.pathsrole.pig.detail": "Pure Neutral (Abundance)\nNo win condition, does not prevent killers from winning.\n\n[Pig Skin] Starts with 2 shield layers (max 3), drops 5 porkchops on hit. Shields do not protect against train fall or AFK death.\n[Pig Charge] Skill key: dash forward 5 blocks, breaks doors and knocks players back 5 blocks, 30s cooldown.\n[Feeding] Other players can feed you with food/drinks via right-click, feeder gets 5 coins. Completing 2 feed tasks adds 1 shield layer (max 3), 30s cooldown per feeder.\n[Restrictions] Only SLEEP/EAT/DRINK tasks.",
+
+  "announcement.star.role.pathsrole.pig": "Pig",
+  "announcement.star.goals.pathsrole.pig": "Oink oink~ You are a pig! Cannot use or pick up any items, but have thick pig skin. Others feeding you makes you stronger!",
+  "info.screen.roleid.pathsrole.pig": "Pig - Pure Neutral (Abundance)\n\nA pure little pig living leisurely on the train, with no win condition and no need to worry about winning or losing. You are a cute little pig!\n\n[Pig Skin - Shield System] Starts with 2 shield layers (max 3). You need to be killed 3 times to truly die. Each broken shield drops 5 porkchops. Shield does not protect against train fall or AFK death.\n\n[Pig Charge] Skill key 2: dash forward 5 blocks (5 tick animation). Automatically breaks doors and knocks back players during dash. Knocked players fly 5 blocks. 30 second cooldown.\n\n[Feeding Mechanic] Other players can right-click you with food or drinks. Feeding helps you complete your current task (eat/drink), and the feeder gets 5 coins. After helping complete 2 tasks, your pig skin thickness increases by 1 layer (max 3). Each feeder has a 30 second feeding cooldown.\n\n[Restrictions] Can only receive SLEEP, EAT, and DRINK tasks. Completely unable to use, pick up, or hold any items.\n\nYou are a happy little pig!",
+
+  "announcement.star.role.pig": "Pig",
+  "announcement.star.goals.pig": "Oink oink~ You are a pig! Cannot use or pick up any items, but have thick pig skin. Others feeding you makes you stronger!",
+  "info.screen.roleid.pig": "Pig - Pure Neutral (Abundance)\n\nA pure little pig living leisurely on the train, with no win condition and no need to worry about winning or losing. You are a cute little pig!\n\n[Pig Skin - Shield System] Starts with 2 shield layers (max 3). You need to be killed 3 times to truly die. Each broken shield drops 5 porkchops. Shield does not protect against train fall or AFK death.\n\n[Pig Charge] Skill key 2: dash forward 5 blocks (5 tick animation). Automatically breaks doors and knocks back players during dash. Knocked players fly 5 blocks. 30 second cooldown.\n\n[Feeding Mechanic] Other players can right-click you with food or drinks. Feeding helps you complete your current task (eat/drink), and the feeder gets 5 coins. After helping complete 2 tasks, your pig skin thickness increases by 1 layer (max 3). Each feeder has a 30 second feeding cooldown.\n\n[Restrictions] Can only receive SLEEP, EAT, and DRINK tasks. Completely unable to use, pick up, or hold any items.\n\nYou are a happy little pig!",
+
+  "skill.pathsrole.pig.transform": "Transform to Pig",
+  "skill.pathsrole.pig.charge": "Pig Charge",
+  "message.pathsrole.pig.transform.caster": "You turned %s into a pig!",
+  "message.pathsrole.pig.transform.target": "You have been turned into a pig!"
 }

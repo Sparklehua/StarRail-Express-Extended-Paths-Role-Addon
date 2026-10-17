@@ -50,8 +50,11 @@
     "cardinal-components": [
       "pathsrole:reimu_player",
       "pathsrole:shipper_player",
+      "pathsrole:kira_player",
       "pathsrole:bounty_hunter_player",
-      "pathsrole:shion_player"
+      "pathsrole:shion_player",
+      "pathsrole:josuke_player",
+      "pathsrole:pig_player"
     ]
   }
 }

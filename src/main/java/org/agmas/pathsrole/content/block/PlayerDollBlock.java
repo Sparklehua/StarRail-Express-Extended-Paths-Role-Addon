@@ -3,6 +3,7 @@ package org.agmas.pathsrole.content.block;
 import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -21,6 +22,7 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import org.agmas.noellesroles.init.NRSounds;
 import org.agmas.pathsrole.init.ModBlockEntities;
 import org.agmas.pathsrole.init.ModItems;
 import org.jetbrains.annotations.Nullable;
@@ -73,6 +75,9 @@ public class PlayerDollBlock extends BaseEntityBlock {
     @Override
     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, net.minecraft.world.phys.BlockHitResult hit) {
         if (!level.isClientSide) {
+            if (NRSounds.BAKA_BAKA != null) {
+                level.playSound(null, pos, NRSounds.BAKA_BAKA, SoundSource.BLOCKS, 1.0f, 1.0f);
+            }
             BlockEntity be = level.getBlockEntity(pos);
             if (be instanceof PlayerDollBlockEntity dollEntity) {
                 dollEntity.squish(1);

@@ -1,5 +1,6 @@
 package org.agmas.pathsrole.client.renderer;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
@@ -54,16 +55,26 @@ public class CelestialGrimoireRenderer implements BuiltinItemRendererRegistry.Dy
     @Override
     public void render(ItemStack stack, ItemDisplayContext context, PoseStack matrices,
                        MultiBufferSource vertexConsumers, int light, int overlay) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc == null) return;
+
         matrices.pushPose();
 
         matrices.mulPose(Axis.YP.rotationDegrees(180));
-        matrices.translate(-1.6F, -2.2F, 0);
 
-        VertexConsumer v = vertexConsumers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
-        VertexConsumer vCover = vertexConsumers.getBuffer(RenderType.entityCutoutNoCull(TEXTURE_COVER));
+        MultiBufferSource.BufferSource bufferSource = mc.renderBuffers().bufferSource();
+
+        if (context == ItemDisplayContext.GUI) {
+            matrices.translate(0.1, 0.4, 0);
+        } else if (context == ItemDisplayContext.FIRST_PERSON_RIGHT_HAND) {
+            matrices.translate(0, 0.7, 0);
+        }
+
+        VertexConsumer v = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE));
+        VertexConsumer vCover = bufferSource.getBuffer(RenderType.entityCutoutNoCull(TEXTURE_COVER));
         PoseStack.Pose last = matrices.last();
 
-        float animT = getAnimationTime();
+        float animT = (context == ItemDisplayContext.GUI) ? 0 : getAnimationTime();
 
         float[] r = computeAnimation(animT);
 
@@ -98,6 +109,8 @@ public class CelestialGrimoireRenderer implements BuiltinItemRendererRegistry.Dy
                 renderElement(pageMatrix, v, light, ei);
             }
         }
+
+        bufferSource.endBatch();
 
         matrices.popPose();
     }

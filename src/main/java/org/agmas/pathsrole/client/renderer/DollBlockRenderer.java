@@ -79,7 +79,15 @@ public class DollBlockRenderer extends GeoBlockRenderer<PlayerDollBlockEntity> {
         setBone(model, "RightArm", boneData, 3);
         setBone(model, "LeftArm", boneData, 6);
         setBone(model, "RightLeg", boneData, 9);
-        setBone(model, "LeftLeg", boneData, 12);
+        if (boneData.length > 14) {
+            setBonePosition(model, "RightLeg", boneData[12], boneData[13], boneData[14]);
+        }
+        if (boneData.length > 17) {
+            setBone(model, "LeftLeg", boneData, 15);
+        }
+        if (boneData.length > 20) {
+            setBonePosition(model, "LeftLeg", boneData[18], boneData[19], boneData[20]);
+        }
     }
 
     private static void setBone(BakedGeoModel model, String name, float[] data, int offset) {
@@ -91,16 +99,59 @@ public class DollBlockRenderer extends GeoBlockRenderer<PlayerDollBlockEntity> {
         });
     }
 
+    private static void setBonePosition(BakedGeoModel model, String name, float px, float py, float pz) {
+        model.getBone(name).ifPresent(b -> {
+            b.setPosX(px);
+            b.setPosY(py);
+            b.setPosZ(pz);
+        });
+    }
+
     private void ensureSkinLoaded(PlayerDollBlockEntity entity) {
         String playerName = entity.getPlayerName();
-        String skinUrl = entity.getSkinUrl();
 
         if (playerName == null || playerName.isEmpty()) return;
-        if (entity.getSkinTexture() != null) return;
+
+        ResourceLocation currentTex = entity.getSkinTexture();
+        if (currentTex != null) {
+            if (SkinTextureManager.isTextureLoaded(currentTex)) return;
+            entity.setSkinTexture(null);
+            entity.setSkinLoadingAttempted(false);
+        }
+
         if (entity.isSkinLoadingAttempted()) return;
 
+        String cachedSkinData = entity.getSkinData();
+        if (cachedSkinData != null && !cachedSkinData.isEmpty()) {
+            entity.setSkinLoadingAttempted(true);
+            loadFromCachedData(entity, playerName, cachedSkinData);
+            return;
+        }
+
+        String skinUrl = entity.getSkinUrl();
         entity.setSkinLoadingAttempted(true);
         loadSkin(entity, playerName, skinUrl);
+    }
+
+    private void loadFromCachedData(PlayerDollBlockEntity entity, String playerName, String skinData) {
+        try {
+            byte[] skinBytes = java.util.Base64.getDecoder().decode(skinData);
+            NativeImage img = NativeImage.read(new java.io.ByteArrayInputStream(skinBytes));
+            if (img != null) {
+                ResourceLocation texId = ResourceLocation.fromNamespaceAndPath("pathsrole",
+                        "skins/cached_" + Integer.toHexString(skinData.hashCode()));
+                Minecraft.getInstance().execute(() -> {
+                    if (!SkinTextureManager.isTextureLoaded(texId)) {
+                        SkinTextureManager.registerTexture(texId, img);
+                    }
+                    entity.setSkinTexture(texId);
+                    entity.setSkinLoadingAttempted(false);
+                });
+                return;
+            }
+        } catch (Exception e) {
+        }
+        entity.setSkinLoadingAttempted(false);
     }
 
     private void render3DOverlay(PlayerDollBlockEntity entity, PoseStack ps,
@@ -144,13 +195,13 @@ public class DollBlockRenderer extends GeoBlockRenderer<PlayerDollBlockEntity> {
             return null;
         }).thenAccept(tex -> {
             Minecraft.getInstance().execute(() -> {
-                if (tex != null) {
+                if (tex != null && entity.getSkinTexture() == null && entity.getSkinData() == null) {
                     entity.setSkinTexture(tex);
-                } else {
+                } else if (tex == null && entity.getSkinTexture() == null && entity.getSkinData() == null) {
                     GameProfile profile = entity.getOwnerProfile();
                     if (profile != null && profile.getId() != null) {
                         ResourceLocation fromProfile = loadFromProfile(profile);
-                        if (fromProfile != null) entity.setSkinTexture(fromProfile);
+                        if (fromProfile != null && entity.getSkinTexture() == null) entity.setSkinTexture(fromProfile);
                     }
                 }
             });

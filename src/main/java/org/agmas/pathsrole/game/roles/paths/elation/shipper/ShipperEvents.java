@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.OptionalInt;
 import java.util.UUID;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.InteractionHand;
@@ -45,6 +46,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import org.agmas.harpymodloader.Harpymodloader;
+import pro.fazeclan.river.stupid_express.modifier.lovers.cca.LoversComponent;
 import org.agmas.harpymodloader.component.WorldModifierComponent;
 import org.agmas.harpymodloader.events.GameInitializeEvent;
 import org.agmas.harpymodloader.events.ModdedRoleAssigned;
@@ -60,11 +62,8 @@ import org.agmas.pathsrole.init.ModModifiers;
 import org.agmas.pathsrole.init.ModRoles;
 import pro.fazeclan.river.stupid_express.StupidExpress;
 import pro.fazeclan.river.stupid_express.constants.SEModifiers;
-import pro.fazeclan.river.stupid_express.modifier.lovers.cca.LoversComponent;
 
 public class ShipperEvents {
-    public static final Map<UUID, Long> betrayalEndTimes = new HashMap<UUID, Long>();
-
     public static void registerEvents() {
         ShipperEvents.registerSkills();
         GameUtils.CustomWinnersPredicates.add(entry -> {
@@ -72,14 +71,14 @@ public class ShipperEvents {
                 return false;
             }
             Player player = (Player)entry.getKey();
-            SREGameRoundEndComponent roundEnd = (SREGameRoundEndComponent)SREGameRoundEndComponent.KEY.get((Object)player.level());
+            SREGameRoundEndComponent roundEnd = (SREGameRoundEndComponent)SREGameRoundEndComponent.KEY.get(player.level());
             if (roundEnd == null) {
                 return false;
             }
             return roundEnd.CustomWinnerPlayers.contains(player.getUUID());
         });
         ModdedRoleAssigned.EVENT.register((player, role) -> {
-            if (role.identifier().equals((Object)ModRoles.SHIPPER.identifier())) {
+            if (role.identifier().equals(ModRoles.SHIPPER.identifier())) {
                 player.addItem(ModItems.SHIPPER_BOOK.getDefaultInstance());
             }
         });
@@ -91,10 +90,10 @@ public class ShipperEvents {
                 break;
             }
             if (hasShipper) {
-                Harpymodloader.MODIFIER_MAX.put(StupidExpress.id((String)"lovers"), 0);
+                Harpymodloader.MODIFIER_MAX.put(StupidExpress.id("lovers"), 0);
             }
             for (ServerPlayer sp : level.players()) {
-                ShipperPlayerComponent comp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)sp);
+                ShipperPlayerComponent comp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(sp);
                 if (comp == null) continue;
                 comp.init();
             }
@@ -105,15 +104,30 @@ public class ShipperEvents {
             }
             if (player instanceof ServerPlayer) {
                 ServerPlayer sp = (ServerPlayer)player;
-                SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)sp.level());
+                SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(sp.level());
                 if (gameWorld == null || !gameWorld.isRunning()) {
                     return;
                 }
                 for (ServerPlayer p : sp.serverLevel().players()) {
                     if (gameWorld.isRole((Player)p, ModRoles.SHIPPER)) {
-                        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)sp.level());
+                        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(sp.level());
                         if (wmc != null) {
                             wmc.removeModifier(sp.getUUID(), SEModifiers.LOVERS);
+                            LoversComponent loversComp = LoversComponent.KEY.get(sp);
+                            if (loversComp != null && loversComp.getLover() != null) {
+                                ServerPlayer loverTwo = sp.serverLevel().getServer().getPlayerList().getPlayer(loversComp.getLover());
+                                if (loverTwo != null) {
+                                    wmc.removeModifier(loverTwo.getUUID(), SEModifiers.LOVERS);
+                                    LoversComponent loverTwoComp = LoversComponent.KEY.get(loverTwo);
+                                    if (loverTwoComp != null) {
+                                        loverTwoComp.reset();
+                                    }
+                                }
+                            }
+                            LoversComponent selfComp = LoversComponent.KEY.get(sp);
+                            if (selfComp != null) {
+                                selfComp.reset();
+                            }
                         }
                         return;
                     }
@@ -125,7 +139,7 @@ public class ShipperEvents {
             for (ServerPlayer sp : level.players()) {
                 if (sp == null) continue;
                 try {
-                    ShipperPlayerComponent comp = (ShipperPlayerComponent) ShipperPlayerComponent.KEY.get((Object) sp);
+                    ShipperPlayerComponent comp = (ShipperPlayerComponent) ShipperPlayerComponent.KEY.get( sp);
                     if (comp == null) continue;
                     comp.init();
                 } catch (Exception e) {
@@ -134,8 +148,8 @@ public class ShipperEvents {
             }
             // 嗑学家印记CP获胜时计入恋人胜利次数
             try {
-                SREGameRoundEndComponent roundEnd = (SREGameRoundEndComponent) SREGameRoundEndComponent.KEY.get((Object) level);
-                WorldModifierComponent wmc = (WorldModifierComponent) WorldModifierComponent.KEY.get((Object) level);
+                SREGameRoundEndComponent roundEnd = (SREGameRoundEndComponent) SREGameRoundEndComponent.KEY.get( level);
+                WorldModifierComponent wmc = (WorldModifierComponent) WorldModifierComponent.KEY.get( level);
                 if (roundEnd == null || wmc == null) return;
                 if (roundEnd.CustomWinnerPlayers == null || roundEnd.CustomWinnerPlayers.isEmpty()) return;
                 if (!roundEnd.getWinStatus().equals(GameUtils.WinStatus.CUSTOM)) return;
@@ -167,13 +181,13 @@ public class ShipperEvents {
                 if (sp.isSpectator() || sp.getHealth() <= 0.0f) {
                     return;
                 }
-                SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)sp.level());
+                SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(sp.level());
                 if (gameWorld == null || !gameWorld.isRunning()) {
                     return;
                 }
                 ShipperPlayerComponent shipperComp = ShipperEvents.findShipperComponent(sp);
                 if (shipperComp != null && shipperComp.getPairedLovers().contains(sp.getUUID()) && !shipperComp.isRageActive()) {
-                    WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)sp.level());
+                    WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(sp.level());
                     if (wmc != null) {
                         wmc.addModifier(sp.getUUID(), ModModifiers.SHIPPER_MARK, false);
                         wmc.sync();
@@ -182,7 +196,7 @@ public class ShipperEvents {
             }
         });
         ResetPlayerEvent.EVENT.register(player -> {
-            ShipperPlayerComponent comp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)player);
+            ShipperPlayerComponent comp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(player);
             if (comp != null) {
                 comp.init();
             }
@@ -195,11 +209,11 @@ public class ShipperEvents {
             if (killer == null) {
                 return;
             }
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)deadPlayer.level());
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(deadPlayer.level());
             if (gameWorld == null || !gameWorld.isRunning()) {
                 return;
             }
-            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)deadPlayer.level());
+            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(deadPlayer.level());
             if (wmc == null || !wmc.isModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK)) {
                 return;
             }
@@ -220,21 +234,14 @@ public class ShipperEvents {
             if (shipperComp.isRageActive()) {
                 return;
             }
-            shipperComp.setRageKiller(killer.getUUID(), ShipperEvents.getSafeName(killer), deadPlayer.getUUID());
-            shipperComp.setRePairCooldownEnd(0L);
-            shipperComp.addAbsorbedPlayer(deadPlayer.getUUID(), ShipperEvents.getSafeName(deadPlayer));
-            killer.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 800, 0, false, false, true));
-            if (killer instanceof ServerPlayer) {
-                ServerPlayer sp = (ServerPlayer)killer;
-                sp.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.killed_shipper_marked").withStyle(ChatFormatting.RED), true);
-            }
+            triggerRageOnLoverKill(deadPlayer, killer, shipperComp);
         });
         OnShieldBroken.EVENT.register((victim, killer) -> {
             if (!(victim instanceof ServerPlayer)) {
                 return;
             }
             ServerPlayer sp = (ServerPlayer)victim;
-            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)sp.level());
+            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(sp.level());
             if (wmc == null) {
                 return;
             }
@@ -247,7 +254,7 @@ public class ShipperEvents {
                 return;
             }
             ServerPlayer deadPlayer = (ServerPlayer)player;
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)deadPlayer.level());
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(deadPlayer.level());
             if (gameWorld == null || !gameWorld.isRunning()) {
                 return;
             }
@@ -264,7 +271,7 @@ public class ShipperEvents {
                     return true;
                 }
                 ServerPlayer deadPlayer = (ServerPlayer)victim;
-                SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)deadPlayer.level());
+                SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(deadPlayer.level());
                 if (gameWorld == null || !gameWorld.isRunning()) {
                     return true;
                 }
@@ -274,8 +281,8 @@ public class ShipperEvents {
                     }
                     ShipperPlayerComponent shipperComp = ShipperEvents.findShipperComponent(deadPlayer);
                     if (shipperComp != null) {
-                        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)deadPlayer.level());
-                        if (wmc != null && wmc.isModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK) && shipperComp.getPairedLovers().contains(deadPlayer.getUUID())) {
+                        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(deadPlayer.level());
+                        if (isPairedLover(deadPlayer.getUUID(), shipperComp, wmc)) {
                             return false;
                         }
                     }
@@ -286,20 +293,27 @@ public class ShipperEvents {
                 return true;
             }
             ServerPlayer deadPlayer = (ServerPlayer)victim;
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)deadPlayer.level());
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(deadPlayer.level());
             if (gameWorld == null || !gameWorld.isRunning()) {
                 return true;
             }
-            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)deadPlayer.level());
+            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(deadPlayer.level());
+            if (deathReason.equals(GameConstants.DeathReasons.GRENADE)) {
+                if (wmc != null && wmc.isModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK)) {
+                    ShipperPlayerComponent shipperComp = ShipperEvents.findShipperComponent(deadPlayer);
+                    if (shipperComp != null && isPairedLover(deadPlayer.getUUID(), shipperComp, wmc)) {
+                        return false;
+                    }
+                }
+            }
             ShipperPlayerComponent shipperForLoverCheck = ShipperEvents.findShipperComponent(deadPlayer);
             if (shipperForLoverCheck == null && killer instanceof ServerPlayer) {
                 ServerPlayer killerServer = (ServerPlayer)killer;
                 shipperForLoverCheck = ShipperEvents.findShipperComponent(killerServer);
             }
             if (shipperForLoverCheck != null && shipperForLoverCheck.isShipperMomentActive()) {
-                boolean killerIsLover;
-                boolean victimIsLover = wmc != null && wmc.isModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK) && shipperForLoverCheck.getPairedLovers().contains(deadPlayer.getUUID());
-                boolean bl = killerIsLover = wmc != null && wmc.isModifier(killer.getUUID(), ModModifiers.SHIPPER_MARK) && shipperForLoverCheck.getPairedLovers().contains(killer.getUUID());
+                boolean victimIsLover = isPairedLover(deadPlayer.getUUID(), shipperForLoverCheck, wmc);
+                boolean killerIsLover = isPairedLover(killer.getUUID(), shipperForLoverCheck, wmc);
                 if (victimIsLover && killerIsLover) {
                     shipperForLoverCheck.setPendingBetrayalKiller(killer.getUUID());
                 }
@@ -308,6 +322,9 @@ public class ShipperEvents {
                 return false;
             }
             if (wmc != null && wmc.isModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK) && wmc.isModifier(killer.getUUID(), ModModifiers.SHIPPER_MARK)) {
+                if (killer.getUUID().equals(deadPlayer.getUUID())) {
+                    return true;
+                }
                 wmc.removeModifier(killer.getUUID(), ModModifiers.SHIPPER_MARK, false);
                 wmc.removeModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK, false);
                 if (shipperForLoverCheck != null) {
@@ -315,15 +332,13 @@ public class ShipperEvents {
                         shipperForLoverCheck.clearPairedLovers();
                     }
                     if (!shipperForLoverCheck.isRageActive()) {
-                        shipperForLoverCheck.setRageKiller(killer.getUUID(), ShipperEvents.getSafeName(killer), deadPlayer.getUUID());
-                        shipperForLoverCheck.setRePairCooldownEnd(0L);
-                        shipperForLoverCheck.addAbsorbedPlayer(deadPlayer.getUUID(), ShipperEvents.getSafeName(deadPlayer));
+                        triggerRageOnLoverKill(deadPlayer, killer, shipperForLoverCheck);
                     }
                 }
                 if (killer instanceof ServerPlayer) {
                     ServerPlayer sp = (ServerPlayer)killer;
                     int victimCoins = 0;
-                    SREPlayerSkinsComponent victimSkins = (SREPlayerSkinsComponent)SREPlayerSkinsComponent.KEY.get((Object)deadPlayer);
+                    SREPlayerSkinsComponent victimSkins = (SREPlayerSkinsComponent)SREPlayerSkinsComponent.KEY.get(deadPlayer);
                     if (victimSkins != null) {
                         victimCoins = victimSkins.getCoinNum();
                     }
@@ -339,17 +354,15 @@ public class ShipperEvents {
                         sp.drop(stack, false);
                     }
                     sp.containerMenu.broadcastChanges();
-                    sp.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 800, 0, false, false, true));
                 }
                 return true;
             }
             if (shipperForLoverCheck != null) {
-                boolean isKillerRageTarget;
                 shipperPlayer = (ServerPlayer)shipperForLoverCheck.getPlayer();
-                boolean bl = isKillerRageTarget = shipperForLoverCheck.isRageActive() && killer.getUUID().equals(shipperPlayer.getUUID()) && deadPlayer.getUUID().equals(shipperForLoverCheck.getRageKiller());
+                boolean isKillerRageTarget = shipperForLoverCheck.isRageActive() && killer.getUUID().equals(shipperPlayer.getUUID()) && deadPlayer.getUUID().equals(shipperForLoverCheck.getRageKiller());
                 if (!isKillerRageTarget) {
-                    boolean victimIsLover = wmc != null && wmc.isModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK) && shipperForLoverCheck.getPairedLovers().contains(deadPlayer.getUUID());
-                    boolean killerIsLover = wmc != null && wmc.isModifier(killer.getUUID(), ModModifiers.SHIPPER_MARK) && shipperForLoverCheck.getPairedLovers().contains(killer.getUUID());
+                    boolean victimIsLover = isPairedLover(deadPlayer.getUUID(), shipperForLoverCheck, wmc);
+                    boolean killerIsLover = isPairedLover(killer.getUUID(), shipperForLoverCheck, wmc);
                     boolean victimIsShipper = gameWorld.isRole((Player)deadPlayer, ModRoles.SHIPPER);
                     boolean killerIsShipper = gameWorld.isRole(killer, ModRoles.SHIPPER);
                     if (victimIsLover && killerIsShipper || victimIsShipper && killerIsLover) {
@@ -358,14 +371,7 @@ public class ShipperEvents {
                 }
             }
             if (wmc != null && wmc.isModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK) && shipperForLoverCheck != null && !shipperForLoverCheck.isRageActive() && GameUtils.isPlayerAliveAndSurvival((Player)(shipperPlayer = (ServerPlayer)shipperForLoverCheck.getPlayer())) && !killer.getUUID().equals(shipperPlayer.getUUID()) && GameUtils.isPlayerAliveAndSurvival((Player)killer)) {
-                shipperForLoverCheck.setRageKiller(killer.getUUID(), ShipperEvents.getSafeName(killer), deadPlayer.getUUID());
-                shipperForLoverCheck.setRePairCooldownEnd(0L);
-                shipperForLoverCheck.addAbsorbedPlayer(deadPlayer.getUUID(), ShipperEvents.getSafeName(deadPlayer));
-                killer.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 800, 0, false, false, true));
-                if (killer instanceof ServerPlayer) {
-                    ServerPlayer sp = (ServerPlayer)killer;
-                    sp.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.killed_shipper_marked").withStyle(ChatFormatting.RED), true);
-                }
+                triggerRageOnLoverKill(deadPlayer, killer, shipperForLoverCheck);
             }
             return true;
         });
@@ -390,7 +396,7 @@ public class ShipperEvents {
             if (!isShipperBook && !isRageShipper) {
                 return InteractionResult.PASS;
             }
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)level);
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(level);
             if (gameWorld == null || !gameWorld.isRunning()) {
                 return InteractionResult.PASS;
             }
@@ -400,12 +406,12 @@ public class ShipperEvents {
             if (shipper.isSpectator() || !shipper.isAlive()) {
                 return InteractionResult.PASS;
             }
-            ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)shipper);
+            ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(shipper);
             if (isRageShipper && shipperComp != null && (shipperComp.isRageActive() || shipperComp.isShipperMomentActive())) {
                 if (targetPlayer.getUUID().equals(shipper.getUUID())) {
                     return InteractionResult.FAIL;
                 }
-                WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)level);
+                WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(level);
                 if (wmc != null && wmc.isModifier(targetPlayer.getUUID(), ModModifiers.SHIPPER_MARK)) {
                     shipper.displayClientMessage(
                         Component.translatable("message.pathsrole.shipper.rage_shipper_cannot_absorb_cp").withStyle(ChatFormatting.RED),
@@ -422,7 +428,6 @@ public class ShipperEvents {
                 GameUtils.killPlayer((Player)targetPlayer, true, (Player)shipper, PathsRoleMod.id("absorbed_by_book"));
                 shipper.getCooldowns().addCooldown(ModItems.RAGE_SHIPPER, 200);
                 shipper.getCooldowns().addCooldown((Item)TMMItems.REVOLVER, 200);
-                // 磕学时刻中每吸入1人提升1级速度（最高速度3），吸入2人获得阿哈祝福护盾
                 if (shipperComp.isShipperMomentActive()) {
                     shipperComp.incrementShipperMomentAbsorbedCount();
                     int absorbedCount = shipperComp.getShipperMomentAbsorbedCount();
@@ -431,12 +436,6 @@ public class ShipperEvents {
                         shipper.removeEffect(net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED);
                         shipper.addEffect(new net.minecraft.world.effect.MobEffectInstance(
                             net.minecraft.world.effect.MobEffects.MOVEMENT_SPEED, 999999, speedLevel, false, true, true));
-                    }
-                    if (absorbedCount >= 2 && !shipperComp.isShipperMomentArmorGiven()) {
-                        if (wmc != null) {
-                            wmc.addModifier(shipper.getUUID(), ModModifiers.AHA_BLESSING);
-                        }
-                        shipperComp.setShipperMomentArmorGiven(true);
                     }
                 }
                 return InteractionResult.SUCCESS;
@@ -462,67 +461,43 @@ public class ShipperEvents {
             return InteractionResult.FAIL;
         });
         AllowGameEnd.EVENT.register((serverWorld, winStatus, isLooseEndsMode) -> {
-            if (isLooseEndsMode) {
-                return GameUtils.WinStatus.NOT_MODIFY;
-            }
-            SREGameWorldComponent gameWorldComponent = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)serverWorld);
-            if (gameWorldComponent == null) {
-                return GameUtils.WinStatus.NOT_MODIFY;
-            }
-            List<? extends Player> remainingPlayers = serverWorld.getPlayers(p -> GameUtils.isPlayerAliveAndSurvival((Player)p) && !(ModRoles.REIMU != null && gameWorldComponent.isRole(p, ModRoles.REIMU)));
-            boolean shipperAlive = false;
-            ServerPlayer shipperPlayer = null;
-            for (Player player : remainingPlayers) {
-                if (!gameWorldComponent.isRole(player, ModRoles.SHIPPER)) continue;
-                shipperAlive = true;
-                shipperPlayer = (ServerPlayer)player;
-                break;
-            }
-            if (!shipperAlive) {
-                GameUtils.WinStatus deadLoversResult;
-                ShipperPlayerComponent deadShipperComp = ShipperEvents.findDeadShipperComponent(serverWorld);
-                if (deadShipperComp != null && deadShipperComp.hasLivingLovers() && (deadLoversResult = ShipperEvents.checkLoversWinWithShipper(serverWorld, null, deadShipperComp, remainingPlayers, winStatus)) != GameUtils.WinStatus.NOT_MODIFY) {
-                    return deadLoversResult;
-                }
-                return GameUtils.WinStatus.NOT_MODIFY;
-            }
-            ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(shipperPlayer);
-            if (shipperComp == null) {
-                return GameUtils.WinStatus.NOT_MODIFY;
-            }
-            
-            // ⬅️ 新增：如果磕学时刻未激活，立即检查是否应该激活（解决时序竞争问题）
-            if (!shipperComp.isShipperMomentActive()) {
-                ShipperEvents.checkShipperMomentTrigger(shipperPlayer, shipperComp);
-            }
-            
-            if (shipperComp.isShipperMomentActive()) {
-                return ShipperEvents.handleShipperMomentWinCheck(serverWorld, shipperPlayer, shipperComp, remainingPlayers, winStatus);
-            }
-            GameUtils.WinStatus loversResult = ShipperEvents.checkLoversWinWithShipper(serverWorld, shipperPlayer, shipperComp, remainingPlayers, winStatus);
-            if (loversResult != GameUtils.WinStatus.NOT_MODIFY) {
-                return loversResult;
-            }
-            return GameUtils.WinStatus.NOT_MODIFY;
-        });
-        AllowShootRevolverDrop.EVENT.register((player, target) -> {
-            SREGameWorldComponent gameWorldComponent = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)player.level());
-            if (gameWorldComponent != null && gameWorldComponent.isRunning() && gameWorldComponent.isRole(player, ModRoles.SHIPPER)) {
-                return TrueFalseResult.FALSE;
-            }
-            return TrueFalseResult.PASS;
+            return checkShipperGameEnd(serverWorld, winStatus, isLooseEndsMode);
         });
         OnRevolverUsed.EVENT.register((player, target) -> {
             if (!(player instanceof ServerPlayer shipper)) return;
-            SREGameWorldComponent gameWorldComponent = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)shipper.level());
+            SREGameWorldComponent gameWorldComponent = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(shipper.level());
             if (gameWorldComponent == null || !gameWorldComponent.isRunning() || !gameWorldComponent.isRole(shipper, ModRoles.SHIPPER)) {
                 return;
             }
-            ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)shipper);
+            ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(shipper);
             if (shipperComp == null || (!shipperComp.isRageActive() && !shipperComp.isShipperMomentActive())) {
                 return;
             }
             shipper.getCooldowns().addCooldown(ModItems.RAGE_SHIPPER, 200);
+        });
+        ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
+            if (entity.level().isClientSide()) {
+                return true;
+            }
+            if (!(entity instanceof ServerPlayer victim)) {
+                return true;
+            }
+            if (!(source.getEntity() instanceof ServerPlayer attacker)) {
+                return true;
+            }
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(victim.level());
+            if (gameWorld == null || !gameWorld.isRole((Player)attacker, ModRoles.SHIPPER)) {
+                return true;
+            }
+            ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(attacker);
+            if (shipperComp == null || !shipperComp.isShipperMomentActive()) {
+                return true;
+            }
+            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(victim.level());
+            if (wmc == null || !wmc.isModifier(victim.getUUID(), ModModifiers.SHIPPER_MARK)) {
+                return true;
+            }
+            return false;
         });
     }
 
@@ -582,25 +557,24 @@ public class ShipperEvents {
         if (shipper == null || target == null || shipperComp == null) {
             return;
         }
-        shipperComp.clearRage();
-        shipperComp.clearPairedLovers();
-        shipperComp.setObservationActive(true);
-        shipperComp.setObservationCooldownEnd(System.currentTimeMillis() + 5000L);
-        shipperComp.addAbsorbedPlayer(target.getUUID(), ShipperEvents.getSafeName(target));
-        GameUtils.killPlayer((Player)target, (boolean)true, (Player)shipper, (ResourceLocation)PathsRoleMod.id("absorbed_by_book"));
+        GameUtils.killPlayer((Player)target, true, (Player)shipper, PathsRoleMod.id("absorbed_by_book"));
         if (GameUtils.isPlayerAliveAndSurvival((Player)target)) {
             shipperComp.setBookCooldownEnd(System.currentTimeMillis() + 5000L);
             shipper.displayClientMessage(
-                (Component)Component.translatable("message.pathsrole.shipper.absorb_blocked").withStyle(ChatFormatting.RED),
+                Component.translatable("message.pathsrole.shipper.absorb_blocked").withStyle(ChatFormatting.RED),
                 true);
             target.displayClientMessage(
-                (Component)Component.translatable("message.pathsrole.shipper.absorb_blocked_target").withStyle(ChatFormatting.GREEN),
+                Component.translatable("message.pathsrole.shipper.absorb_blocked_target").withStyle(ChatFormatting.GREEN),
                 true);
+        } else {
+            shipperComp.clearRage();
+            shipperComp.clearPairedLovers();
+            shipperComp.addAbsorbedPlayer(target.getUUID(), ShipperEvents.getSafeName(target));
         }
     }
 
     private static void handleShipperBookUse(ServerPlayer shipper, ServerPlayer target, SREGameWorldComponent gameWorld) {
-        ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)shipper);
+        ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(shipper);
         if (shipperComp == null) {
             return;
         }
@@ -609,76 +583,77 @@ public class ShipperEvents {
         }
         shipperComp.updateLastInteractionTick();
         if (shipper.hasEffect(ModEffects.SAFE_TIME)) {
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.safe_time_blocked").withStyle(ChatFormatting.RED), true);
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.safe_time_blocked").withStyle(ChatFormatting.RED), true);
             return;
         }
-        if (target.equals((Object)shipper)) {
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.cannot_self").withStyle(ChatFormatting.RED), true);
+        if (target.equals(shipper)) {
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.cannot_self").withStyle(ChatFormatting.RED), true);
             return;
         }
         if (!GameUtils.isPlayerAliveAndSurvivalIgnoreShitSplit((Player)target)) {
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.target_disconnected").withStyle(ChatFormatting.RED), true);
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.target_disconnected").withStyle(ChatFormatting.RED), true);
             return;
         }
         if (ModRoles.REIMU != null && gameWorld.isRole(target, ModRoles.REIMU)) {
             shipper.displayClientMessage(Component.literal("§c对方是博丽灵梦，无法被磕CP。"), true);
             return;
         }
-        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)shipper.serverLevel());
+        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(shipper.serverLevel());
         if (wmc == null) {
             return;
         }
         if (wmc.isModifier(target.getUUID(), ModModifiers.SHIPPER_MARK)) {
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.already_lover").withStyle(ChatFormatting.RED), true);
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.already_lover").withStyle(ChatFormatting.RED), true);
             return;
         }
         if (wmc.isModifier(target.getUUID(), SEModifiers.LOVERS)) {
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.target_has_lovers").withStyle(ChatFormatting.RED), true);
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.target_has_lovers").withStyle(ChatFormatting.RED), true);
             return;
         }
         if (shipperComp.isInRePairCooldown()) {
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.repair_cooldown", (Object[])new Object[]{shipperComp.getRePairCooldownRemainingSeconds()}).withStyle(ChatFormatting.RED), true);
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.repair_cooldown", new Object[]{shipperComp.getRePairCooldownRemainingSeconds()}).withStyle(ChatFormatting.RED), true);
             return;
         }
         if (shipperComp.isRageActive()) {
             shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.rage_clear_hint").withStyle(ChatFormatting.BOLD), true);
             return;
         }
+        if (shipperComp.isInRageEndCooldown()) {
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.rage_end_cooldown", shipperComp.getRageEndCooldownRemainingSeconds()).withStyle(ChatFormatting.RED), true);
+            return;
+        }
         if (shipperComp.hasLivingLovers()) {
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.has_living_lovers").withStyle(ChatFormatting.RED), true);
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.has_living_lovers").withStyle(ChatFormatting.RED), true);
             return;
         }
         if (shipperComp.isObservationOnCooldown()) {
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.observation_cooldown", (Object[])new Object[]{shipperComp.getObservationCooldownRemainingSeconds()}).withStyle(ChatFormatting.RED), true);
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.observation_cooldown", new Object[]{shipperComp.getObservationCooldownRemainingSeconds()}).withStyle(ChatFormatting.RED), true);
             return;
         }
         if (shipperComp.getFirstTarget() == null) {
             shipperComp.setFirstTarget(target.getUUID());
             shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.first_target", new Object[]{target.getName()}).withStyle(ChatFormatting.GOLD), true);
-            SRE.REPLAY_MANAGER.recordCustomEvent((Component)Component.translatable((String)"replay.event.pathsrole.shipper.marked", (Object[])new Object[]{GameReplayUtils.getReplayPlayerDisplayText((Player)shipper, (boolean)true), GameReplayUtils.getReplayPlayerDisplayText((Player)target, (boolean)true)}));
+            SRE.REPLAY_MANAGER.recordCustomEvent(Component.translatable("replay.event.pathsrole.shipper.marked", new Object[]{GameReplayUtils.getReplayPlayerDisplayText((Player)shipper, true), GameReplayUtils.getReplayPlayerDisplayText((Player)target, true)}));
             return;
         }
         if (shipperComp.getFirstTarget() != null && shipperComp.getFirstTarget().equals(target.getUUID())) {
-            if (shipper.level().getGameTime() == shipperComp.getLastInteractionTick()) {
-                return;
-            }
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.same_player").withStyle(ChatFormatting.RED), true);
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.same_player").withStyle(ChatFormatting.RED), true);
             return;
         }
         Player firstTargetPlayer = shipper.serverLevel().getPlayerByUUID(shipperComp.getFirstTarget());
         if (firstTargetPlayer == null || !GameUtils.isPlayerAliveAndSurvivalIgnoreShitSplit((Player)firstTargetPlayer)) {
             shipperComp.clearFirstTarget();
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.first_target_lost").withStyle(ChatFormatting.RED), true);
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.first_target_lost").withStyle(ChatFormatting.RED), true);
             return;
         }
         if (wmc.isModifier(firstTargetPlayer.getUUID(), ModModifiers.SHIPPER_MARK)) {
             shipperComp.clearFirstTarget();
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.first_target_became_lover").withStyle(ChatFormatting.RED), true);
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.first_target_became_lover").withStyle(ChatFormatting.RED), true);
             return;
         }
         if (wmc.isModifier(firstTargetPlayer.getUUID(), SEModifiers.LOVERS) || wmc.isModifier(target.getUUID(), SEModifiers.LOVERS)) {
             shipperComp.clearFirstTarget();
-            shipper.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.target_has_lovers").withStyle(ChatFormatting.RED), true);
+            shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.target_has_lovers").withStyle(ChatFormatting.RED), true);
             return;
         }
         ShipperEvents.bindLovers(shipper, (ServerPlayer)firstTargetPlayer, target, wmc, shipperComp);
@@ -690,7 +665,7 @@ public class ShipperEvents {
             LoversComponent loversComp;
             if (modifier.equals(SEModifiers.BLACK_WHITE) || modifier.equals(SEModifiers.REFUGEE)) continue;
             wmc.removeModifier(player.getUUID(), modifier, false);
-            if (!modifier.equals(SEModifiers.LOVERS) || (loversComp = (LoversComponent)LoversComponent.KEY.get((Object)player)) == null) continue;
+            if (!modifier.equals(SEModifiers.LOVERS) || (loversComp = (LoversComponent)LoversComponent.KEY.get(player)) == null) continue;
             loversComp.reset();
         }
     }
@@ -703,18 +678,18 @@ public class ShipperEvents {
         ShipperEvents.clearModifiersForPlayer(second, wmc);
         wmc.addModifier(first.getUUID(), ModModifiers.SHIPPER_MARK, false);
         wmc.addModifier(second.getUUID(), ModModifiers.SHIPPER_MARK, false);
-        wmc.sync();
         String firstName = first.getGameProfile() != null ? first.getGameProfile().getName() : first.getName().getString();
         String secondName = second.getGameProfile() != null ? second.getGameProfile().getName() : second.getName().getString();
         shipperComp.addPairedLovers(first.getUUID(), second.getUUID(), firstName, secondName);
+        wmc.sync();
         shipper.displayClientMessage(Component.translatable("message.pathsrole.shipper.paired", new Object[]{first.getName(), second.getName()}).withStyle(ChatFormatting.GOLD), true);
         first.displayClientMessage(Component.translatable("message.pathsrole.shipper.became_lover_hud"), false);
         second.displayClientMessage(Component.translatable("message.pathsrole.shipper.became_lover_hud"), false);
-        SRE.REPLAY_MANAGER.recordCustomEvent((Component)Component.translatable((String)"replay.event.pathsrole.shipper.paired", (Object[])new Object[]{GameReplayUtils.getReplayPlayerDisplayText((Player)shipper, (boolean)true), GameReplayUtils.getReplayPlayerDisplayText((Player)first, (boolean)true), GameReplayUtils.getReplayPlayerDisplayText((Player)second, (boolean)true)}));
+        SRE.REPLAY_MANAGER.recordCustomEvent(Component.translatable("replay.event.pathsrole.shipper.paired", new Object[]{GameReplayUtils.getReplayPlayerDisplayText((Player)shipper, true), GameReplayUtils.getReplayPlayerDisplayText((Player)first, true), GameReplayUtils.getReplayPlayerDisplayText((Player)second, true)}));
     }
 
     private static void handleShipperDeath(ServerPlayer deadShipper) {
-        ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)deadShipper);
+        ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(deadShipper);
         if (shipperComp == null) {
             return;
         }
@@ -726,17 +701,17 @@ public class ShipperEvents {
             SREArmorPlayerComponent armor;
             ServerPlayer sp;
             Player lover = deadShipper.serverLevel().getPlayerByUUID(uuid);
-            if (!(lover instanceof ServerPlayer) || !GameUtils.isPlayerAliveAndSurvival((Player)(sp = (ServerPlayer)lover)) || (armor = (SREArmorPlayerComponent)SREArmorPlayerComponent.KEY.get((Object)sp)) == null) continue;
+            if (!(lover instanceof ServerPlayer) || !GameUtils.isPlayerAliveAndSurvival((Player)(sp = (ServerPlayer)lover)) || (armor = (SREArmorPlayerComponent)SREArmorPlayerComponent.KEY.get(sp)) == null) continue;
             armor.addArmor();
         }
     }
 
     private static void handleLoverDeath(ServerPlayer deadPlayer) {
-        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)deadPlayer.level());
+        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(deadPlayer.level());
         if (gameWorld == null || !gameWorld.isRunning()) {
             return;
         }
-        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)deadPlayer.serverLevel());
+        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(deadPlayer.serverLevel());
         if (wmc == null) {
             return;
         }
@@ -753,11 +728,6 @@ public class ShipperEvents {
         if (shipper instanceof ServerPlayer sp && sp.connection != null) {
             sp.displayClientMessage(Component.literal("有人阻碍你的磕学，找出凶手，将他吸入书中").withStyle(ChatFormatting.RED), true);
         }
-        if (shipperComp.isShipperMomentActive()) {
-            shipperComp.setShipperMomentActive(false);
-            shipperComp.clearPairedLovers();
-            return;
-        }
         if (!isPaired) {
             wmc.removeModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK, false);
             return;
@@ -766,7 +736,7 @@ public class ShipperEvents {
             ServerPlayer sp;
             Player lover;
             if (uuid.equals(deadPlayer.getUUID()) || !((lover = deadPlayer.serverLevel().getPlayerByUUID(uuid)) instanceof ServerPlayer) || !GameUtils.isPlayerAliveAndSurvival((Player)(sp = (ServerPlayer)lover))) continue;
-            GameUtils.forceKillPlayer((Player)sp, (boolean)true, (Player)deadPlayer, (ResourceLocation)PathsRoleMod.id("broken_heart"));
+            GameUtils.forceKillPlayer((Player)sp, true, (Player)deadPlayer, PathsRoleMod.id("broken_heart"));
         }
         shipperComp.clearPairedLovers();
         if (!shipperComp.isRageActive()) {
@@ -774,36 +744,47 @@ public class ShipperEvents {
         }
     }
 
+    private static boolean isPairedLover(UUID playerUuid, ShipperPlayerComponent comp, WorldModifierComponent wmc) {
+        return wmc != null && comp != null
+                && wmc.isModifier(playerUuid, ModModifiers.SHIPPER_MARK)
+                && comp.getPairedLovers().contains(playerUuid);
+    }
+
     private static ShipperPlayerComponent findShipperComponent(ServerPlayer player) {
+        UUID playerId = player.getUUID();
         for (ServerPlayer sp : player.serverLevel().players()) {
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)sp.level());
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(sp.level());
             if (gameWorld == null || !gameWorld.isRole((Player)sp, ModRoles.SHIPPER)) continue;
-            return (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)sp);
+            ShipperPlayerComponent comp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(sp);
+            if (comp == null) continue;
+            if (sp.getUUID().equals(playerId) || comp.getPairedLovers().contains(playerId)) {
+                return comp;
+            }
         }
         return null;
     }
 
     private static ShipperPlayerComponent findDeadShipperComponent(ServerLevel serverWorld) {
         for (ServerPlayer sp : serverWorld.players()) {
-            ShipperPlayerComponent comp;
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)sp.level());
-            if (gameWorld == null || !gameWorld.isRole((Player)sp, ModRoles.SHIPPER) || (comp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)sp)) == null) continue;
-            return comp;
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(sp.level());
+            if (gameWorld != null && gameWorld.isRole((Player)sp, ModRoles.SHIPPER)) {
+                return (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(sp);
+            }
         }
         return null;
     }
 
     private static GameUtils.WinStatus checkLoversWinWithShipper(ServerLevel serverWorld, ServerPlayer shipperPlayer, ShipperPlayerComponent shipperComp, List<? extends Player> remainingPlayers, GameUtils.WinStatus winStatus) {
-        boolean bl = true;
+        boolean noKillerTeamAlive = true;
         boolean hasMarkedLovers = shipperComp.hasLivingLovers();
         if (!hasMarkedLovers) {
             return GameUtils.WinStatus.NOT_MODIFY;
         }
-        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)serverWorld);
+        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(serverWorld);
         boolean allAreShipperOrLovers = true;
         boolean hasLover = false;
         for (Player player : remainingPlayers) {
-            if (player.equals((Object)shipperPlayer)) continue;
+            if (player.equals(shipperPlayer)) continue;
             if (wmc != null && wmc.isModifier(player.getUUID(), ModModifiers.SHIPPER_MARK)) {
                 hasLover = true;
                 continue;
@@ -812,26 +793,28 @@ public class ShipperEvents {
             break;
         }
         if (allAreShipperOrLovers && hasLover) {
-            SREGameRoundEndComponent gameRoundEndComponent = (SREGameRoundEndComponent)SREGameRoundEndComponent.KEY.get((Object)serverWorld);
+            SREGameRoundEndComponent gameRoundEndComponent = (SREGameRoundEndComponent)SREGameRoundEndComponent.KEY.get(serverWorld);
             if (gameRoundEndComponent == null) {
                 PathsRoleMod.LOGGER.error("[Shipper checkLoversWin] gameRoundEndComponent is null, cannot declare custom win");
                 return GameUtils.WinStatus.NOT_MODIFY;
             }
             gameRoundEndComponent.CustomWinnerPlayers.clear();
             for (Player player : remainingPlayers) {
-                gameRoundEndComponent.CustomWinnerPlayers.add(player.getUUID());
+                boolean isShipperPlayer = shipperPlayer != null && player.equals(shipperPlayer);
+                if (isShipperPlayer || (wmc != null && wmc.isModifier(player.getUUID(), ModModifiers.SHIPPER_MARK))) {
+                    gameRoundEndComponent.CustomWinnerPlayers.add(player.getUUID());
+                }
             }
-            RoleUtils.customWinnerWin((ServerLevel)serverWorld, (GameUtils.WinStatus)GameUtils.WinStatus.CUSTOM, (String)ModRoles.SHIPPER.identifier().getPath(), (OptionalInt)OptionalInt.of(ModRoles.SHIPPER.color()));
+            RoleUtils.customWinnerWin((ServerLevel)serverWorld, (GameUtils.WinStatus)GameUtils.WinStatus.CUSTOM, ModRoles.SHIPPER.identifier().getPath(), (OptionalInt)OptionalInt.of(ModRoles.SHIPPER.color()));
             return GameUtils.WinStatus.CUSTOM;
         }
-        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)serverWorld);
-        boolean bl2 = true;
+        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(serverWorld);
         for (Player player : remainingPlayers) {
             if (gameWorld == null || !gameWorld.isKillerTeam((Player)player)) continue;
-            bl = false;
+            noKillerTeamAlive = false;
             break;
         }
-        if (bl) {
+        if (noKillerTeamAlive) {
             ShipperEvents.checkShipperMomentTrigger(shipperPlayer, shipperComp);
             return GameUtils.WinStatus.NONE;
         }
@@ -842,11 +825,11 @@ public class ShipperEvents {
         if (shipperComp == null) {
             return GameUtils.WinStatus.NOT_MODIFY;
         }
-        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)serverWorld);
+        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(serverWorld);
         boolean onlyShipperAndLovers = true;
         boolean hasLivingLovers = false;
         for (Player player : remainingPlayers) {
-            if (player.equals((Object)shipperPlayer)) continue;
+            if (player.equals(shipperPlayer)) continue;
             if (wmc != null && wmc.isModifier(player.getUUID(), ModModifiers.SHIPPER_MARK)) {
                 hasLivingLovers = true;
                 continue;
@@ -854,7 +837,7 @@ public class ShipperEvents {
             onlyShipperAndLovers = false;
         }
         if (onlyShipperAndLovers && hasLivingLovers) {
-            SREGameRoundEndComponent gameRoundEndComponent = (SREGameRoundEndComponent)SREGameRoundEndComponent.KEY.get((Object)serverWorld);
+            SREGameRoundEndComponent gameRoundEndComponent = (SREGameRoundEndComponent)SREGameRoundEndComponent.KEY.get(serverWorld);
             if (gameRoundEndComponent == null) {
                 PathsRoleMod.LOGGER.error("[Shipper handleShipperMomentWinCheck] gameRoundEndComponent is null, cannot declare custom win");
                 shipperComp.setShipperMomentActive(false);
@@ -863,9 +846,11 @@ public class ShipperEvents {
             }
             gameRoundEndComponent.CustomWinnerPlayers.clear();
             for (Player player : remainingPlayers) {
-                gameRoundEndComponent.CustomWinnerPlayers.add(player.getUUID());
+                if (player.equals(shipperPlayer) || (wmc != null && wmc.isModifier(player.getUUID(), ModModifiers.SHIPPER_MARK))) {
+                    gameRoundEndComponent.CustomWinnerPlayers.add(player.getUUID());
+                }
             }
-            RoleUtils.customWinnerWin((ServerLevel)serverWorld, (GameUtils.WinStatus)GameUtils.WinStatus.CUSTOM, (String)ModRoles.SHIPPER.identifier().getPath(), (OptionalInt)OptionalInt.of(ModRoles.SHIPPER.color()));
+            RoleUtils.customWinnerWin((ServerLevel)serverWorld, (GameUtils.WinStatus)GameUtils.WinStatus.CUSTOM, ModRoles.SHIPPER.identifier().getPath(), (OptionalInt)OptionalInt.of(ModRoles.SHIPPER.color()));
             shipperComp.setShipperMomentActive(false);
             shipperComp.setShipperMomentCompleted(true);
             return GameUtils.WinStatus.CUSTOM;
@@ -873,9 +858,9 @@ public class ShipperEvents {
         
         // ⬅️ 修复：检查磕学家是否还存活
         boolean shipperStillAlive = false;
+        SREGameWorldComponent gameWorldForCheck = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(serverWorld);
         for (Player player : remainingPlayers) {
-            SREGameWorldComponent gameWorldComponent2 = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)serverWorld);
-            if (gameWorldComponent2 != null && gameWorldComponent2.isRole(player, ModRoles.SHIPPER)) {
+            if (gameWorldForCheck != null && gameWorldForCheck.isRole(player, ModRoles.SHIPPER)) {
                 shipperStillAlive = true;
                 break;
             }
@@ -895,7 +880,7 @@ public class ShipperEvents {
         if (shipperPlayer == null || shipperComp == null) {
             return;
         }
-        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)shipperPlayer.level());
+        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(shipperPlayer.level());
         if (gameWorld == null || !gameWorld.isRunning()) {
             return;
         }
@@ -939,11 +924,11 @@ public class ShipperEvents {
         if (shipperPlayer.serverLevel() != null) {
             for (ServerPlayer sp : shipperPlayer.serverLevel().players()) {
                 if (sp == null || sp.connection == null) continue;
-                sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(net.minecraft.network.chat.Component.empty()));
-                sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(titleText));
+                sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket(titleText));
+                sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket(net.minecraft.network.chat.Component.empty()));
                 sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket(10, 60, 10));
             }
-            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)shipperPlayer.serverLevel());
+            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(shipperPlayer.serverLevel());
             if (wmc != null) {
                 for (ServerPlayer sp : shipperPlayer.serverLevel().players()) {
                     if (sp == null) continue;
@@ -994,12 +979,11 @@ public class ShipperEvents {
         }
         Player lover1Player = lover1 != null ? shipperPlayer.level().getPlayerByUUID(lover1) : null;
         Player lover2Player = lover2 != null ? shipperPlayer.level().getPlayerByUUID(lover2) : null;
-        SRE.REPLAY_MANAGER.recordCustomEvent((Component)Component.translatable((String)"replay.event.pathsrole.shipper.shipper_moment", (Object[])new Object[]{GameReplayUtils.getReplayPlayerDisplayText((Player)shipperPlayer, (boolean)true), lover1Player != null ? GameReplayUtils.getReplayPlayerDisplayText((Player)lover1Player, (boolean)true) : Component.literal("?"), lover2Player != null ? GameReplayUtils.getReplayPlayerDisplayText((Player)lover2Player, (boolean)true) : Component.literal("?")}));
+        SRE.REPLAY_MANAGER.recordCustomEvent(Component.translatable("replay.event.pathsrole.shipper.shipper_moment", new Object[]{GameReplayUtils.getReplayPlayerDisplayText((Player)shipperPlayer, true), lover1Player != null ? GameReplayUtils.getReplayPlayerDisplayText((Player)lover1Player, true) : Component.literal("?"), lover2Player != null ? GameReplayUtils.getReplayPlayerDisplayText((Player)lover2Player, true) : Component.literal("?")}));
     }
 
     private static void handleShipperMomentLinkedDeath(ServerPlayer deadPlayer, SREGameWorldComponent gameWorld) {
-        boolean hasPendingBetrayal;
-        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)deadPlayer.serverLevel());
+        WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(deadPlayer.serverLevel());
         if (wmc == null) {
             return;
         }
@@ -1009,7 +993,7 @@ public class ShipperEvents {
         boolean isShipper = gameWorld.isRole((Player)deadPlayer, ModRoles.SHIPPER);
         boolean isMarkedLover = wmc.isModifier(deadPlayer.getUUID(), ModModifiers.SHIPPER_MARK);
         ShipperPlayerComponent shipperComp = ShipperEvents.findShipperComponent(deadPlayer);
-        boolean bl = hasPendingBetrayal = shipperComp != null && shipperComp.getPendingBetrayalKiller() != null;
+        boolean hasPendingBetrayal = shipperComp != null && shipperComp.getPendingBetrayalKiller() != null;
         if (!(isShipper || isMarkedLover || hasPendingBetrayal)) {
             return;
         }
@@ -1021,8 +1005,9 @@ public class ShipperEvents {
                 ServerPlayer sp;
                 Player lover = deadPlayer.serverLevel().getPlayerByUUID(uuid);
                 if (!(lover instanceof ServerPlayer) || !GameUtils.isPlayerAliveAndSurvival((Player)(sp = (ServerPlayer)lover))) continue;
-                GameUtils.forceKillPlayer((Player)sp, (boolean)true, (Player)deadPlayer, (ResourceLocation)PathsRoleMod.id("shipper_moment_bond"));
+                GameUtils.forceKillPlayer((Player)sp, true, (Player)deadPlayer, PathsRoleMod.id("shipper_moment_bond"));
             }
+            shipperComp.clearPendingBetrayalKiller();
             return;
         }
         UUID betrayalKiller = shipperComp.getPendingBetrayalKiller();
@@ -1031,7 +1016,7 @@ public class ShipperEvents {
             shipperComp.clearPendingBetrayalKiller();
             Player killer = deadPlayer.serverLevel().getPlayerByUUID(betrayalKiller);
             if (killer instanceof ServerPlayer && GameUtils.isPlayerAliveAndSurvival((Player)(sp = (ServerPlayer)killer))) {
-                GameUtils.forceKillPlayer((Player)sp, (boolean)true, (Player)deadPlayer, (ResourceLocation)PathsRoleMod.id("shipper_moment_bond"));
+                GameUtils.forceKillPlayer((Player)sp, true, (Player)deadPlayer, PathsRoleMod.id("shipper_moment_bond"));
             }
             return;
         }
@@ -1042,13 +1027,13 @@ public class ShipperEvents {
             break;
         }
         if (shipper != null) {
-            GameUtils.forceKillPlayer(shipper, (boolean)true, (Player)deadPlayer, (ResourceLocation)PathsRoleMod.id("shipper_moment_bond"));
+            GameUtils.forceKillPlayer(shipper, true, (Player)deadPlayer, PathsRoleMod.id("shipper_moment_bond"));
         }
         for (UUID uuid : new ArrayList<UUID>(shipperComp.getPairedLovers())) {
             ServerPlayer sp;
             Player otherLover;
             if (uuid.equals(deadPlayer.getUUID()) || !((otherLover = deadPlayer.serverLevel().getPlayerByUUID(uuid)) instanceof ServerPlayer) || !GameUtils.isPlayerAliveAndSurvival((Player)(sp = (ServerPlayer)otherLover))) continue;
-            GameUtils.forceKillPlayer((Player)sp, (boolean)true, (Player)deadPlayer, (ResourceLocation)PathsRoleMod.id("shipper_moment_bond"));
+            GameUtils.forceKillPlayer((Player)sp, true, (Player)deadPlayer, PathsRoleMod.id("shipper_moment_bond"));
         }
     }
 
@@ -1076,6 +1061,19 @@ public class ShipperEvents {
             })
                 .cooldownTicks(100).toggleable(true).showOnHud(true).announceToSelf(false).build()
         });
+    }
+
+    private static void triggerRageOnLoverKill(ServerPlayer victim, Player killer, ShipperPlayerComponent shipperComp) {
+        if (shipperComp == null || killer == null || victim == null) {
+            return;
+        }
+        shipperComp.setRageKiller(killer.getUUID(), getSafeName(killer), victim.getUUID());
+        shipperComp.setRePairCooldownEnd(0L);
+        shipperComp.addAbsorbedPlayer(victim.getUUID(), getSafeName(victim));
+        killer.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 800, 0, false, false, true));
+        if (killer instanceof ServerPlayer sp) {
+            sp.displayClientMessage(Component.translatable("message.pathsrole.shipper.killed_shipper_marked").withStyle(ChatFormatting.RED), true);
+        }
     }
 
     private static String getSafeName(Player player) {

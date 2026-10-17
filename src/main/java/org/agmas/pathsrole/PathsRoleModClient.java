@@ -11,6 +11,7 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.BuiltinItemRendererRegistry;
 
@@ -48,8 +49,18 @@ import org.agmas.pathsrole.client.renderer.CelestialGrimoireRenderer;
 import org.agmas.pathsrole.client.renderer.YinYangOrbRenderer;
 import org.agmas.pathsrole.client.renderer.ShrineGhostRenderer;
 import org.agmas.pathsrole.client.renderer.ThrownFlowerDollRenderer;
+import org.agmas.pathsrole.client.renderer.SheerHeartEntityModel;
+import org.agmas.pathsrole.client.renderer.SheerHeartEntityRenderer;
+import org.agmas.pathsrole.client.KiraHudRenderer;
+import org.agmas.pathsrole.client.JosukeHudRenderer;
+import org.agmas.pathsrole.client.KeyInputHandler;
+import org.agmas.pathsrole.input.KeyBindings;
+import org.agmas.noellesroles.client.GKeyRoleSkill;
+import org.agmas.pathsrole.network.KiraC2SPacket;
+import org.agmas.pathsrole.network.JosukeSkillC2SPacket;
 import org.agmas.pathsrole.client.screen.WantedPosterScreen;
 import org.agmas.pathsrole.content.item.WantedPosterItem;
+import org.agmas.pathsrole.game.roles.paths.abundance.pig.PigFormOffsets;
 import org.agmas.pathsrole.game.roles.paths.elation.shipper.ShipperPlayerComponent;
 import org.agmas.pathsrole.init.ModBlockEntities;
 import org.agmas.pathsrole.init.ModBlocks;
@@ -76,10 +87,20 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.world.phys.Vec3;
+
 public class PathsRoleModClient
 implements ClientModInitializer {
 
     private static final Set<UUID> hiddenPlayerUuids = new HashSet<>();
+
+    private static final int SHIPPER_RAGE_COLOR = 0xFFB22222;
+    private static final int LOVER_COLOR = 0xFFFF69B4;
+    private static final int BOUNTY_HUNTER_COLOR = 0xFFB22222;
+    private static final int KILLER_TEAM_COLOR = 0xFF8B5A2B;
 
     /**
      * 检查指定玩家是否被当前客户端隐藏（受 {@link org.agmas.pathsrole.api.PlayerVisibilityAPI} 控制）。
@@ -89,6 +110,8 @@ implements ClientModInitializer {
     }
 
     public void onInitializeClient() {
+        PigFormOffsets.loadFromJson();
+
         ShrineDonationBoxBlock.setScreenOpener(level -> {
             Minecraft.getInstance().execute(() -> {
                 try {
@@ -241,6 +264,18 @@ implements ClientModInitializer {
         BlockEntityRendererRegistry.register(ModBlockEntities.PLAYER_DOLL, DollBlockRenderer::new);
         BuiltinItemRendererRegistry.INSTANCE.register(ModItems.PLAYER_DOLL, new DollItemRenderer());
         BuiltinItemRendererRegistry.INSTANCE.register(ModItems.AS_I_WRITE, new CelestialGrimoireRenderer());
+        
+        EntityModelLayerRegistry.registerModelLayer(SheerHeartEntityModel.LAYER_LOCATION, SheerHeartEntityModel::createBodyLayer);
+        EntityRendererRegistry.register(ModEntities.SHEER_HEART, SheerHeartEntityRenderer::new);
+        
+        KeyBindings.init();
+        KeyInputHandler.init();
+        
+        KiraHudRenderer.init();
+        JosukeHudRenderer.init();
+        
+        registerGKeySkills();
+        
         CommonInstinctEvents.ALIVE_COMMON_BEFORE_EVENT.register((self, target, hasInstinct) -> {
             if (target == null) {
                 return TrueFalseAndCustomResult.pass();
@@ -254,7 +289,7 @@ implements ClientModInitializer {
                     SRERole selfRole = SREClient.gameComponent.getRole(self);
                     boolean isKiller = selfRole != null && selfRole.isKillerTeam();
 
-                    ShipperPlayerComponent shipperComp = ShipperPlayerComponent.KEY.get((Object)targetPlayer);
+                    ShipperPlayerComponent shipperComp = ShipperPlayerComponent.KEY.get(targetPlayer);
                     if (shipperComp != null && shipperComp.isObservationActive() && shipperComp.getInvisibilityAlpha() <= 0.01f) {
                         return TrueFalseAndCustomResult.disallow();
                     }
@@ -284,13 +319,13 @@ implements ClientModInitializer {
             if (!SREClient.gameComponent.isRole((Player)self, ModRoles.SHIPPER)) {
                 return TrueFalseAndCustomResult.pass();
             }
-            ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)self);
+            ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(self);
             if (shipperComp == null) {
                 return TrueFalseAndCustomResult.pass();
             }
             if (shipperComp.isRageActive() && shipperComp.getRageKiller() != null
                     && shipperComp.getRageKiller().equals(targetPlayer.getUUID())) {
-                return TrueFalseAndCustomResult.custom(Integer.valueOf(new Color(178, 34, 34).getRGB()));
+                return TrueFalseAndCustomResult.custom(SHIPPER_RAGE_COLOR);
             }
             if (!hasInstinct) {
                 return TrueFalseAndCustomResult.pass();
@@ -299,7 +334,7 @@ implements ClientModInitializer {
                 return TrueFalseAndCustomResult.disallow();
             }
             if (shipperComp.getPairedLovers().contains(targetPlayer.getUUID())) {
-                return TrueFalseAndCustomResult.custom(Integer.valueOf(new Color(255, 105, 180).getRGB()));
+                return TrueFalseAndCustomResult.custom(LOVER_COLOR);
             }
             return TrueFalseAndCustomResult.custom(Integer.valueOf(Color.GRAY.getRGB()));
         });
@@ -322,11 +357,11 @@ implements ClientModInitializer {
             BountyHunterPlayerComponent bhComp = BountyHunterPlayerComponent.KEY.get(self);
             if (bhComp != null && bhComp.isHunting() && bhComp.getTargetUUID() != null
                     && bhComp.getTargetUUID().equals(targetPlayer.getUUID())) {
-                return TrueFalseAndCustomResult.custom(new Color(178, 34, 34).getRGB());
+                return TrueFalseAndCustomResult.custom(BOUNTY_HUNTER_COLOR);
             }
             SRERole targetRole = SREClient.gameComponent.getRole(targetPlayer);
             if (targetRole != null && targetRole.isKillerTeam()) {
-                return TrueFalseAndCustomResult.custom(new Color(139, 90, 43).getRGB());
+                return TrueFalseAndCustomResult.custom(KILLER_TEAM_COLOR);
             }
             return TrueFalseAndCustomResult.disallow();
         });
@@ -365,7 +400,7 @@ implements ClientModInitializer {
             if (SREClient.gameComponent == null || !SREClient.gameComponent.isRole((Player)client.player, ModRoles.SHIPPER)) {
                 return;
             }
-            ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)client.player);
+            ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(client.player);
             if (shipperComp == null) {
                 return;
             }
@@ -380,5 +415,38 @@ implements ClientModInitializer {
                 guiGraphics.drawString(font, text, x, y, 16766720, true);
             }
         });
+    }
+
+    private static void registerGKeySkills() {
+        GKeyRoleSkill.register(ModRoles.KIRA, true, (client, gameWorld) -> {
+            ClientPlayNetworking.send(new KiraC2SPacket(new UUID(0, 0), KiraC2SPacket.ACTION_ANCHOR_MARK));
+            return true;
+        });
+
+        GKeyRoleSkill.register(ModRoles.JOSUKE, true, (client, gameWorld) -> {
+            UUID targetUuid = findLookedAtPlayer(client);
+            ClientPlayNetworking.send(new JosukeSkillC2SPacket(targetUuid != null ? targetUuid : new UUID(0, 0)));
+            return true;
+        });
+    }
+
+    private static UUID findLookedAtPlayer(Minecraft client) {
+        if (client.player == null) {
+            return null;
+        }
+        double range = 6.0;
+        Vec3 eyePos = client.player.getEyePosition();
+        Vec3 look = client.player.getLookAngle();
+        Vec3 targetPos = eyePos.add(look.x * range, look.y * range, look.z * range);
+        AABB boundingBox = client.player.getBoundingBox()
+            .expandTowards(look.scale(range))
+            .inflate(1.0D);
+        EntityHitResult hit = ProjectileUtil.getEntityHitResult(
+            client.player.level(), client.player, eyePos, targetPos, boundingBox,
+            entity -> entity instanceof Player && entity != client.player && entity.isAlive());
+        if (hit != null && hit.getEntity() instanceof Player target) {
+            return target.getUUID();
+        }
+        return null;
     }
 }

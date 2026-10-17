@@ -6,6 +6,8 @@
     "CupidPlayerComponentMixin",
     "FlowerDollForceKillImmunityMixin",
     "PelicanPlayerComponentMixin",
+    "PigEntityMixin",
+    "PigPlayerEyeHeightMixin",
     "RoleMethodDispatcherMixin",
     "ShionGoldRestrictionMixin",
     "SREMurderGameModeMixin",
@@ -23,7 +25,14 @@
     "PlayerRendererHatLayerMixin",
     "ShipperFadeAlphaMixin",
     "MoneyRendererHudMixin",
-    "MoneyRendererStoreMixin"
+    "MoneyRendererStoreMixin",
+    "KiraScreenMixin",
+    "ShopContentMixin",
+    "client.PlayerBodyEntityClientMixin",
+    "client.PlayerBodyEntityRendererMixin",
+    "client.PigPlayerRendererMixin",
+    "client.CameraPigHeightMixin",
+    "client.QuadrupedModelAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

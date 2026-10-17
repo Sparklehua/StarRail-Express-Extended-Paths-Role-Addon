@@ -56,7 +56,7 @@ public class ShipperMomentRevolverItem extends Item {
             }
             user.setXRot(user.getXRot() - 4);
             spawnHandParticle();
-            user.getCooldowns().addCooldown(TMMItems.REVOLVER, 20 * 20);
+            user.getCooldowns().addCooldown(this, 20 * 20);
         } else {
             SREGameWorldComponent gameWorldComponent = SREGameWorldComponent.KEY.get(world);
             if (gameWorldComponent != null) {
@@ -67,7 +67,7 @@ public class ShipperMomentRevolverItem extends Item {
                     }
                 }
             }
-            user.getCooldowns().addCooldown(org.agmas.pathsrole.init.ModItems.SHIPPER_MOMENT_REVOLVER, 20 * 20);
+            
         }
         return InteractionResultHolder.consume(stack);
     }

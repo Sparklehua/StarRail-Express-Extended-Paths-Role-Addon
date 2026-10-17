@@ -117,7 +117,7 @@ ClientTickingComponent {
     }
 
     public void sync() {
-        KEY.sync((Object)this.player);
+        KEY.sync(this.player);
     }
 
     public int getBarrierCooldown() {
@@ -211,7 +211,7 @@ ClientTickingComponent {
             return;
         }
         ServerPlayer sp = (ServerPlayer)Player2;
-        sp.displayClientMessage((Component)Component.literal((String)"skill.noellesroles.reimu.started").withStyle(ChatFormatting.GREEN), true);
+        sp.displayClientMessage(Component.translatable("skill.noellesroles.reimu.started").withStyle(ChatFormatting.GREEN), true);
         sp.getAbilities().mayfly = true;
         sp.getAbilities().flying = true;
         sp.getAbilities().setFlyingSpeed(0.018f);
@@ -231,7 +231,7 @@ ClientTickingComponent {
         }
         ServerPlayer sp = (ServerPlayer)Player2;
         if (!silent) {
-            sp.displayClientMessage((Component)Component.literal((String)"skill.noellesroles.reimu.stopped").withStyle(ChatFormatting.RED), true);
+            sp.displayClientMessage(Component.translatable("skill.noellesroles.reimu.stopped").withStyle(ChatFormatting.RED), true);
         }
         sp.getAbilities().mayfly = false;
         sp.getAbilities().flying = false;
@@ -245,15 +245,15 @@ ClientTickingComponent {
 
     public boolean activateBarrier(ServerPlayer player, boolean checkCooldown) {
         if (checkCooldown && this.barrierCooldown > 0) {
-            player.displayClientMessage((Component)Component.translatable((String)"message.reimu.barrier_cooldown", (Object[])new Object[]{this.barrierCooldown / 20}).withStyle(ChatFormatting.RED), true);
+            player.displayClientMessage(Component.translatable("message.reimu.barrier_cooldown", new Object[]{this.barrierCooldown / 20}).withStyle(ChatFormatting.RED), true);
             return false;
         }
-        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)player);
+        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get(player);
         if (shop == null) {
             return false;
         }
         if (shop.balance < BARRIER_COST) {
-            player.displayClientMessage((Component)Component.translatable((String)"message.reimu.not_enough_coins", (Object[])new Object[]{BARRIER_COST}).withStyle(ChatFormatting.RED), true);
+            player.displayClientMessage(Component.translatable("message.reimu.not_enough_coins", new Object[]{BARRIER_COST}).withStyle(ChatFormatting.RED), true);
             return false;
         }
         shop.addToBalance(-BARRIER_COST);
@@ -263,7 +263,7 @@ ClientTickingComponent {
         this.barrierY = player.getY();
         this.barrierZ = player.getZ();
         this.sync();
-        player.displayClientMessage((Component)Component.translatable((String)"message.reimu.barrier_activated").withStyle(ChatFormatting.GOLD), true);
+        player.displayClientMessage(Component.translatable("message.reimu.barrier_activated").withStyle(ChatFormatting.GOLD), true);
         this.sendBarrierPacket(player.serverLevel(), true, 240);
         return true;
     }
@@ -295,7 +295,7 @@ ClientTickingComponent {
 
     private void checkWinCondition() {
         boolean balanced;
-        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)this.player.level());
+        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(this.player.level());
         if (gameWorld == null || !gameWorld.isRunning() || !gameWorld.isRole(this.player, ModRoles.REIMU)) {
             return;
         }
@@ -305,7 +305,7 @@ ClientTickingComponent {
         if (!GameUtils.isPlayerAliveAndSurvival((Player)this.player)) {
             return;
         }
-        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)this.player);
+        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get(this.player);
         if (shop == null) {
             this.stabilizeCancel();
             return;
@@ -338,7 +338,7 @@ ClientTickingComponent {
         if (this.stabilizationTimer <= 0 || this.winTriggered) {
             return;
         }
-        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)this.player.level());
+        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(this.player.level());
         if (gameWorld == null || !gameWorld.isRunning()) {
             return;
         }
@@ -346,7 +346,7 @@ ClientTickingComponent {
             this.stabilizeCancel();
             return;
         }
-        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)this.player);
+        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get(this.player);
         if (shop == null || shop.balance < this.getTargetCoins()) {
             this.stabilizeCancel();
             return;
@@ -419,12 +419,12 @@ ClientTickingComponent {
         this.winTriggered = true;
         this.removeStabilizationEffects();
         this.sync();
-        RoleUtils.customWinnerWin((ServerLevel)level, (GameUtils.WinStatus)GameUtils.WinStatus.CUSTOM, (String)ModRoles.REIMU_ID.getPath(), (OptionalInt)OptionalInt.of(ModRoles.REIMU.color()));
+        RoleUtils.customWinnerWin((ServerLevel)level, (GameUtils.WinStatus)GameUtils.WinStatus.CUSTOM, ModRoles.REIMU_ID.getPath(), (OptionalInt)OptionalInt.of(ModRoles.REIMU.color()));
     }
 
     public void serverTick() {
         SREPlayerShopComponent shop;
-        SREGameWorldComponent gameWorldComponent = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)this.player.level());
+        SREGameWorldComponent gameWorldComponent = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(this.player.level());
         if (gameWorldComponent == null || !gameWorldComponent.isRunning()) {
             return;
         }
@@ -438,9 +438,9 @@ ClientTickingComponent {
             }
             return;
         }
-        if (this.player.tickCount % 20 == 0 && (shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)this.player)) != null) {
+        if (this.player.tickCount % 20 == 0 && (shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get(this.player)) != null) {
             int target = this.getTargetCoins();
-            ((ServerPlayer)this.player).displayClientMessage((Component)Component.translatable((String)"message.reimu.coins_display", (Object[])new Object[]{shop.balance, target}).withStyle(ChatFormatting.GOLD), true);
+            ((ServerPlayer)this.player).displayClientMessage(Component.translatable("message.reimu.coins_display", new Object[]{shop.balance, target}).withStyle(ChatFormatting.GOLD), true);
         }
         if (this.player.tickCount % 20 == 0) {
             SREArmorPlayerComponent armor = SREArmorPlayerComponent.KEY.get(this.player);
@@ -492,7 +492,7 @@ ClientTickingComponent {
                     sp.setInvisible(false);
                     this.revealedPlayers.add(sp.getUUID());
                     serverLevel.sendParticles((ParticleOptions)new DustParticleOptions(new Vector3f(1.0f, 0.2f, 0.2f), 1.5f), sp.getX(), sp.getY() + 1.0, sp.getZ(), 15, 0.3, 0.5, 0.3, 0.05);
-                    sp.displayClientMessage((Component)Component.translatable((String)"message.reimu.barrier_revealed").withStyle(ChatFormatting.RED), true);
+                    sp.displayClientMessage(Component.translatable("message.reimu.barrier_revealed").withStyle(ChatFormatting.RED), true);
                     continue;
                 }
                 if (!this.revealedPlayers.contains(sp.getUUID())) continue;
@@ -551,7 +551,7 @@ ClientTickingComponent {
     }
 
     public void clientTick() {
-        SREGameWorldComponent gameWorldComponent = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)this.player.level());
+        SREGameWorldComponent gameWorldComponent = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(this.player.level());
         if (gameWorldComponent == null || !gameWorldComponent.isRunning()) {
             return;
         }

@@ -16,7 +16,7 @@ public class ShipperInvisibleMixin {
         if (cir.getReturnValue()) return;
         Entity entity = (Entity)(Object)this;
         if (!(entity instanceof Player player)) return;
-        ShipperPlayerComponent comp = ShipperPlayerComponent.KEY.get(player);
+        ShipperPlayerComponent comp = ShipperPlayerComponent.KEY.getNullable(player);
         if (comp != null && comp.getInvisibilityAlpha() <= 0.01f) {
             cir.setReturnValue(true);
         }
@@ -25,9 +25,10 @@ public class ShipperInvisibleMixin {
     @Inject(method = "isInvisibleTo", at = @At("RETURN"), cancellable = true)
     private void pathsrole$fadeIsInvisibleTo(Player observer, CallbackInfoReturnable<Boolean> cir) {
         if (cir.getReturnValue()) return;
+        if (observer != null && observer.isSpectator()) return;
         Entity entity = (Entity)(Object)this;
         if (!(entity instanceof Player player)) return;
-        ShipperPlayerComponent comp = ShipperPlayerComponent.KEY.get(player);
+        ShipperPlayerComponent comp = ShipperPlayerComponent.KEY.getNullable(player);
         if (comp != null && comp.getInvisibilityAlpha() <= 0.01f) {
             cir.setReturnValue(true);
         }

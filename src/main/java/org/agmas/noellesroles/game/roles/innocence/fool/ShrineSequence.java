@@ -1,5 +1,6 @@
 package org.agmas.noellesroles.game.roles.innocence.fool;
 
+import io.wifi.starrailexpress.cca.AreasWorldComponent;
 import io.wifi.starrailexpress.cca.SREGameTimeComponent;
 import io.wifi.starrailexpress.cca.SREGameWorldComponent;
 import io.wifi.starrailexpress.cca.SREPlayerPoisonComponent;
@@ -28,7 +29,6 @@ import org.agmas.harpymodloader.component.WorldModifierComponent;
 import org.agmas.noellesroles.game.roles.neutral.cuckoo.CuckooEggData;
 import org.agmas.noellesroles.init.ModEffects;
 import org.agmas.pathsrole.PathsRoleMod;
-import org.agmas.pathsrole.content.item.ShrineEntranceItem;
 import org.agmas.pathsrole.content.item.ShrineItem;
 import org.agmas.pathsrole.init.ModItems;
 import org.agmas.pathsrole.init.ModRoles;
@@ -70,6 +70,14 @@ public class ShrineSequence {
 
     /** 神社期间强制加载的区块，用于防止布谷鸟蛋等实体被卸载清除 */
     private static final Set<ChunkPos> forceLoadedChunks = new HashSet<>();
+
+    private static boolean isInPlayArea(ServerPlayer player) {
+        if (!player.isAlive()) return false;
+        if (isInShrineBounds(player)) return false;
+        AreasWorldComponent areas = AreasWorldComponent.getInstance(player);
+        if (areas == null) return false;
+        return areas.getPlayArea().contains(player.position());
+    }
 
     public static boolean isShrineProtected(UUID uuid) {
         return protectedShrinePlayers.contains(uuid);
@@ -132,7 +140,7 @@ public class ShrineSequence {
             var inv = bodyComp.getCorpseInventory();
             for (int i = 0; i < inv.getContainerSize(); i++) {
                 ItemStack stack = inv.getItem(i);
-                if (stack.getItem() == ModItems.SHRINE || stack.getItem() == ModItems.SHRINE_ENTRANCE) {
+                if (stack.getItem() == ModItems.SHRINE) {
                     inv.setItem(i, ItemStack.EMPTY);
                 }
             }
@@ -249,6 +257,7 @@ public class ShrineSequence {
         }
 
         if (phase == Phase.ACTIVE) {
+            // 每秒显示倒计时
             if (displayCounter % 20 == 0) {
                 long remaining = Math.max(0, (phaseEndTick - System.currentTimeMillis()) / 1000);
                 Component msg = Component.literal("§d神社剩余时间 §f" + remaining + "§d秒");
@@ -260,12 +269,79 @@ public class ShrineSequence {
                 }
             }
 
+            // 每秒重新拉回回到了游玩区的玩家
+            if (displayCounter % 20 == 0) {
+                if (!(cachedServer.getLevel(Level.OVERWORLD) instanceof ServerLevel sl) || sl == null) return;
+                Vec3 spawnPos = ShrineSceneBuilder.getShrineSpawnPos();
+                float yaw = ShrineSceneBuilder.getShrineSpawnYaw();
+                float pitch = ShrineSceneBuilder.getShrineSpawnPitch();
+
+                    for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
+                        if (pl == null) continue;
+
+                        // 已在保护中但在神社外 → 检查是否需要拉回
+                        if (protectedShrinePlayers.contains(pl.getUUID()) && !isInShrineBounds(pl)) {
+                            if (isInPlayArea(pl)) {
+                                // 保存位置（仅第一次）
+                                if (!ShrineManager.preShrinePositions.containsKey(pl.getUUID())) {
+                                    ShrineManager.preShrinePositions.put(pl.getUUID(), new double[] {
+                                            pl.getX(), pl.getY(), pl.getZ(),
+                                            pl.getYRot(), pl.getXRot()
+                                    });
+                                }
+                                pl.stopSleeping();
+                                pl.stopRiding();
+                                if (spawnPos != null) {
+                                    pl.teleportTo(sl, spawnPos.x, spawnPos.y, spawnPos.z,
+                                            Set.of(), yaw, pitch);
+                                } else {
+                                    pl.teleportTo(sl,
+                                            ShrineManager.SHRINE_X, ShrineManager.SHRINE_Y + 1,
+                                            ShrineManager.SHRINE_Z,
+                                            Set.of(), pl.getYRot(), pl.getXRot());
+                                }
+                                pl.setDeltaMovement(0.0D, 0.0D, 0.0D);
+                                pl.fallDistance = 0.0F;
+                                pl.displayClientMessage(
+                                        Component.literal("§d你已回到游玩区，重新拉入神社"), true);
+                            }
+                            continue;
+                        }
+
+                        // 未在保护中的玩家如果在游玩区 → 拉入
+                        if (!protectedShrinePlayers.contains(pl.getUUID())) {
+                            if (isInPlayArea(pl)) {
+                                if (!ShrineManager.preShrinePositions.containsKey(pl.getUUID())) {
+                                    ShrineManager.preShrinePositions.put(pl.getUUID(), new double[] {
+                                            pl.getX(), pl.getY(), pl.getZ(),
+                                            pl.getYRot(), pl.getXRot()
+                                    });
+                                }
+                                pl.stopSleeping();
+                                pl.stopRiding();
+                                if (spawnPos != null) {
+                                    pl.teleportTo(sl, spawnPos.x, spawnPos.y, spawnPos.z,
+                                            Set.of(), yaw, pitch);
+                                } else {
+                                    pl.teleportTo(sl,
+                                            ShrineManager.SHRINE_X, ShrineManager.SHRINE_Y + 1,
+                                            ShrineManager.SHRINE_Z,
+                                            Set.of(), pl.getYRot(), pl.getXRot());
+                                }
+                                pl.setDeltaMovement(0.0D, 0.0D, 0.0D);
+                                pl.fallDistance = 0.0F;
+                                applyShrineEntranceEffects(pl);
+                            }
+                        }
+                    }
+            }
+
             // 检查已离开神社的玩家，清除保护状态
             if (displayCounter % 10 == 0 && !protectedShrinePlayers.isEmpty()) {
                 ServerLevel sl = null;
                 for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
                     if (pl == null) continue;
-                    if (sl == null) sl = (ServerLevel) pl.level();
+                    if (sl == null && pl.level() instanceof ServerLevel playerLevel) sl = playerLevel;
                     UUID uuid = pl.getUUID();
                     if (!protectedShrinePlayers.contains(uuid)) continue;
 
@@ -356,7 +432,7 @@ public class ShrineSequence {
     private static void removeEntranceItems(ServerPlayer player) {
         for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
             ItemStack stack = player.getInventory().getItem(i);
-            if (stack.getItem() == ModItems.SHRINE_ENTRANCE || stack.getItem() == ModItems.SHRINE) {
+            if (stack.getItem() == ModItems.SHRINE) {
                 player.getInventory().setItem(i, ItemStack.EMPTY);
             }
         }
@@ -395,38 +471,49 @@ public class ShrineSequence {
             PathsRoleMod.LOGGER.error("[ShrineSequence] Failed to force-load chunks", e);
         }
 
-        // 给非巫女玩家发放神社出入口物品
-        int count = 0;
+        Vec3 spawnPos = ShrineSceneBuilder.getShrineSpawnPos();
+        float yaw = ShrineSceneBuilder.getShrineSpawnYaw();
+        float pitch = ShrineSceneBuilder.getShrineSpawnPitch();
+
+        int teleported = 0;
+        int skipped = 0;
+
         for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
             if (pl == null) continue;
 
-            SREGameWorldComponent gameWorld = SREGameWorldComponent.KEY.get(pl.level());
-            boolean isReimu = gameWorld != null && gameWorld.isRole(pl, ModRoles.REIMU);
-
-            if (isReimu) {
-                if (pl.connection != null) {
-                    pl.connection.send(new ClientboundSetTitlesAnimationPacket(0, 40, 5));
-                    pl.connection.send(new ClientboundSetTitleTextPacket(
-                        Component.literal("§e神社已降临！使用神社自由进出")
-                    ));
-                }
-                count++;
+            if (!isInPlayArea(pl)) {
+                skipped++;
                 continue;
             }
 
-            ItemStack entranceItem = new ItemStack(ModItems.SHRINE_ENTRANCE);
-            if (!pl.getInventory().add(entranceItem)) {
-                pl.drop(entranceItem, false);
+            // 保存原始位置（仅第一次，避免覆盖）
+            if (!ShrineManager.preShrinePositions.containsKey(pl.getUUID())) {
+                ShrineManager.preShrinePositions.put(pl.getUUID(), new double[] {
+                        pl.getX(), pl.getY(), pl.getZ(),
+                        pl.getYRot(), pl.getXRot()
+                });
             }
 
-            if (pl.connection != null) {
-                pl.connection.send(new ClientboundSetTitlesAnimationPacket(0, 40, 5));
-                pl.connection.send(new ClientboundSetTitleTextPacket(
-                    Component.literal("§e神社已降临！使用神社出入口进入")
-                ));
-            }
+            // 传送进神社
+            pl.addEffect(new MobEffectInstance(ModEffects.BLACK_MONITOR, 20 * 1, 0, false, false, false));
+            pl.stopSleeping();
+            pl.stopRiding();
 
-            count++;
+            if (spawnPos != null) {
+                pl.teleportTo(serverLevel, spawnPos.x, spawnPos.y, spawnPos.z,
+                        Set.of(), yaw, pitch);
+            } else {
+                pl.teleportTo(serverLevel,
+                        ShrineManager.SHRINE_X, ShrineManager.SHRINE_Y + 1, ShrineManager.SHRINE_Z,
+                        Set.of(), pl.getYRot(), pl.getXRot());
+            }
+            pl.setDeltaMovement(0.0D, 0.0D, 0.0D);
+            pl.fallDistance = 0.0F;
+
+            // 施加神社效果（静语 + JEB + FEATHER + 无敌保护）
+            applyShrineEntranceEffects(pl);
+
+            teleported++;
         }
 
         // 强制疯魔玩家退出疯魔状态
@@ -465,8 +552,18 @@ public class ShrineSequence {
             gameTime.setTimeFrozen(true);
         }
 
-        PathsRoleMod.LOGGER.info("[ShrineSequence] Shrine landed. {} players got items. Active {}s.",
-                count, ACTIVE_TICKS / 20);
+        // 通知所有玩家
+        Component title = Component.literal("§d神社已降临！全体进入");
+        Component info = Component.literal("§e在神社境内的玩家无法使用技能/语音/聊天");
+        for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
+            if (pl == null || pl.connection == null) continue;
+            pl.connection.send(new ClientboundSetTitlesAnimationPacket(0, 60, 5));
+            pl.connection.send(new ClientboundSetTitleTextPacket(title));
+            pl.displayClientMessage(info, false);
+        }
+
+        PathsRoleMod.LOGGER.info("[ShrineSequence] Shrine landed. {} teleported, {} skipped. Active {}s.",
+                teleported, skipped, ACTIVE_TICKS / 20);
     }
 
     private static void endSequence() {
@@ -478,7 +575,8 @@ public class ShrineSequence {
         if (cachedServer != null && cachedServer.getPlayerList() != null) {
             for (ServerPlayer pl : cachedServer.getPlayerList().getPlayers()) {
                 if (pl == null) continue;
-                removeShrineProtection(pl, (ServerLevel) pl.level());
+                ServerLevel plLevel = pl.level() instanceof ServerLevel sl ? sl : null;
+                removeShrineProtection(pl, plLevel);
                 removeEntranceItems(pl);
                 if (ShrineManager.isPlayerInShrineBounds(pl)) {
                     ShrineManager.leaveShrineInternal(pl);
@@ -533,7 +631,6 @@ public class ShrineSequence {
     }
 
     private static void cleanupShrine() {
-        ShrineEntranceItem.reset();
         ShrineItem.resetReimuTracking();
         protectedShrinePlayers.clear();
         shrineBannedPlayers.clear();

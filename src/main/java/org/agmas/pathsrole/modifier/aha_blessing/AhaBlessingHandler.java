@@ -77,13 +77,13 @@ public class AhaBlessingHandler {
                 Random random = new Random();
 
                 for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-                    WorldModifierComponent wmc = (WorldModifierComponent) WorldModifierComponent.KEY.get((Object) player.serverLevel());
+                    WorldModifierComponent wmc = (WorldModifierComponent) WorldModifierComponent.KEY.get( player.serverLevel());
                     if (wmc == null || !wmc.isModifier(player.getUUID(), ModModifiers.AHA_BLESSING)) continue;
 
                     Holder<MobEffect> effect = POSSIBLE_EFFECTS.get(random.nextInt(POSSIBLE_EFFECTS.size()));
                     player.addEffect(new MobEffectInstance(effect, EFFECT_DURATION, 1));
 
-                    SREArmorPlayerComponent armorComp = (SREArmorPlayerComponent) SREArmorPlayerComponent.KEY.get((Object) player);
+                    SREArmorPlayerComponent armorComp = (SREArmorPlayerComponent) SREArmorPlayerComponent.KEY.get( player);
                     if (armorComp != null) {
                         armorComp.addTimedArmor(1, EFFECT_DURATION, false);
                     }

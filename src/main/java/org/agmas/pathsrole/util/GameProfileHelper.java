@@ -1,11 +1,15 @@
 package org.agmas.pathsrole.util;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
+
+import java.util.Base64;
 
 public class GameProfileHelper {
 
@@ -102,10 +106,19 @@ public class GameProfileHelper {
     }
 
     public static void savePlayerInfoToStack(ItemStack stack, String playerName) {
+        savePlayerInfoToStack(stack, playerName, null);
+    }
+
+    public static void savePlayerInfoToStack(ItemStack stack, String playerName, GameProfile onlineProfile) {
         if (stack == null || playerName == null || playerName.isEmpty()) {
             return;
         }
-        GameProfile profile = PlayerProfileFetcher.fetchGameProfile(playerName);
+
+        GameProfile profile = onlineProfile;
+        if (profile == null) {
+            profile = PlayerProfileFetcher.fetchGameProfile(playerName);
+        }
+
         if (profile != null) {
             setGameProfileToStack(stack, profile);
         }
@@ -113,6 +126,34 @@ public class GameProfileHelper {
         CustomData customData = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY);
         CompoundTag tag = customData.copyTag();
         tag.putString("PlayerName", playerName);
+
+        if (profile != null) {
+            String skinUrl = extractSkinUrl(profile);
+            if (skinUrl != null && !skinUrl.isEmpty()) {
+                tag.putString("SkinUrl", skinUrl);
+            }
+        }
+
         stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+    }
+
+    public static String extractSkinUrl(GameProfile profile) {
+        if (profile == null || !profile.getProperties().containsKey("textures")) {
+            return null;
+        }
+        try {
+            Property property = profile.getProperties().get("textures").iterator().next();
+            if (property == null) return null;
+            String decoded = new String(Base64.getDecoder().decode(property.value()));
+            JsonObject json = new Gson().fromJson(decoded, JsonObject.class);
+            if (json.has("textures") && json.get("textures").isJsonObject()) {
+                JsonObject textures = json.getAsJsonObject("textures");
+                if (textures.has("SKIN") && textures.get("SKIN").isJsonObject()) {
+                    return textures.getAsJsonObject("SKIN").get("url").getAsString();
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 }

@@ -109,7 +109,7 @@ public class WantedPosterItem extends Item {
             if (isHunter) {
                 return InteractionResultHolder.pass(stack);
             }
-            if (gameWorld != null && !gameWorld.isKillerTeam(user)) {
+            if (gameWorld != null && !gameWorld.isKillerTeam(user) && !gameWorld.isNeutralForKiller(user)) {
                 user.displayClientMessage(
                     Component.translatable("message.pathsrole.bounty_hunter.not_killer_cannot_use").withStyle(ChatFormatting.RED),
                     true);

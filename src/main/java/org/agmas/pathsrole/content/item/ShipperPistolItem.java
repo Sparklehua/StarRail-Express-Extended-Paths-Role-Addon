@@ -56,6 +56,7 @@ public class ShipperPistolItem extends Item implements HeldLikeRevolver {
             }
             user.setXRot(user.getXRot() - 4);
             spawnHandParticle();
+            user.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
         } else {
             SREGameWorldComponent gameWorldComponent = SREGameWorldComponent.KEY.get(world);
             final var role = gameWorldComponent.getRole(user);
@@ -65,7 +66,6 @@ public class ShipperPistolItem extends Item implements HeldLikeRevolver {
                 }
             }
         }
-        user.getCooldowns().addCooldown(this, COOLDOWN_TICKS);
         return InteractionResultHolder.consume(stack);
     }
 

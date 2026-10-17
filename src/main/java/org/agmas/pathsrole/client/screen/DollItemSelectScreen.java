@@ -48,10 +48,10 @@ public class DollItemSelectScreen extends Screen {
     private int scrollOffset = 0;
     private Item selectedItem = Items.AIR;
     private float itemRotX, itemRotY, itemRotZ;
-    private float itemPosX, itemPosY, itemPosZ;
+    private float itemPosX = -0.9f, itemPosY = -1.4f, itemPosZ = 2.0f;
     private EditBox irx, iry, irz;
     private EditBox ipx, ipy, ipz;
-    private float previewRotY = 150f;
+    private float previewRotY = 180f;
     private float previewRotX = 10f;
     private boolean isDragging = false;
     private String activeCategory = null;
@@ -67,6 +67,7 @@ public class DollItemSelectScreen extends Screen {
     @Override
     protected void init() {
         super.init();
+        forceScale4();
 
         // 动态计算网格布局，完全填满左侧到预览分界线
         int gridRight = width - RIGHT_W - 10;
@@ -103,9 +104,9 @@ public class DollItemSelectScreen extends Screen {
         irz = makeEditBoxWithButtons(x3, ctrlY, "0", 5f);
         ctrlY += 28;
 
-        ipx = makeEditBoxWithButtons(x1, ctrlY, "0", 0.1f);
-        ipy = makeEditBoxWithButtons(x2, ctrlY, "0", 0.1f);
-        ipz = makeEditBoxWithButtons(x3, ctrlY, "0", 0.1f);
+        ipx = makeEditBoxWithButtons(x1, ctrlY, "-0.9", 0.1f);
+        ipy = makeEditBoxWithButtons(x2, ctrlY, "-1.4", 0.1f);
+        ipz = makeEditBoxWithButtons(x3, ctrlY, "2.0", 0.1f);
 
         addRenderableWidget(Button.builder(Component.literal("确认"), b -> confirm())
                 .bounds(rx + 38, height - 28, 66, 20).build());
@@ -244,27 +245,29 @@ public class DollItemSelectScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
+        double es = extraScale();
+        double amx = mx / es, amy = my / es;
         if (button == 0) {
-            if (my >= 70 && my < 70 + TAB_H) {
-                handleTabClick(mx);
+            if (amy >= 70 && amy < 70 + TAB_H) {
+                handleTabClick(amx);
                 return true;
             }
             int gridRight = width - RIGHT_W - 4;
-            if (mx > GRID_X && mx < gridRight && my > GRID_Y && my < GRID_Y + ROWS * SLOT) {
-                int col = (int) ((mx - GRID_X) / SLOT);
-                int row = (int) ((my - GRID_Y) / SLOT);
+            if (amx > GRID_X && amx < gridRight && amy > GRID_Y && amy < GRID_Y + ROWS * SLOT) {
+                int col = (int) ((amx - GRID_X) / SLOT);
+                int row = (int) ((amy - GRID_Y) / SLOT);
                 int idx = (scrollOffset + row) * COLS + col;
                 if (col < COLS && idx >= 0 && idx < filteredItems.size()) {
                     selectedItem = filteredItems.get(idx).getItem();
                 }
                 return true;
             }
-            if (mx >= width - RIGHT_W && my >= 50 && my <= height - 120) {
+            if (amx >= width - RIGHT_W && amy >= 50 && amy <= height - 120) {
                 isDragging = true;
                 return true;
             }
         }
-        return super.mouseClicked(mx, my, button);
+        return super.mouseClicked(amx, amy, button);
     }
 
     private void handleTabClick(double mx) {
@@ -292,36 +295,40 @@ public class DollItemSelectScreen extends Screen {
 
     @Override
     public boolean mouseDragged(double mx, double my, int btn, double dx, double dy) {
+        double es = extraScale();
         if (isDragging && btn == 0) {
             previewRotY += (float) dx * 0.5f;
             previewRotX += (float) dy * 0.5f;
             previewRotX = Mth.clamp(previewRotX, -90f, 90f);
             return true;
         }
-        return super.mouseDragged(mx, my, btn, dx, dy);
+        return super.mouseDragged(mx / es, my / es, btn, dx / es, dy / es);
     }
 
     @Override
     public boolean mouseReleased(double mx, double my, int btn) {
         isDragging = false;
-        return super.mouseReleased(mx, my, btn);
+        double es = extraScale();
+        return super.mouseReleased(mx / es, my / es, btn);
     }
 
     @Override
     public boolean mouseScrolled(double mx, double my, double scrollX, double scrollY) {
-        if (my >= GRID_Y && my < GRID_Y + ROWS * SLOT && mx < width - RIGHT_W) {
+        double es = extraScale();
+        double amx = mx / es, amy = my / es;
+        if (amy >= GRID_Y && amy < GRID_Y + ROWS * SLOT && amx < width - RIGHT_W) {
             int maxScroll = Math.max(0, (filteredItems.size() + COLS - 1) / COLS - ROWS);
             scrollOffset = Mth.clamp(scrollOffset - (int) Math.signum(scrollY), 0, maxScroll);
             return true;
         }
-        if (my >= 70 && my < 70 + TAB_H) {
+        if (amy >= 70 && amy < 70 + TAB_H) {
             String[] categories = categorizedItems.keySet().toArray(new String[0]);
             int maxVisible = (width - RIGHT_W - 10 - GRID_X) / 52;
             tabScroll = Mth.clamp(tabScroll - (int) Math.signum(scrollY), 0,
                     Math.max(0, categories.length - maxVisible));
             return true;
         }
-        return super.mouseScrolled(mx, my, scrollX, scrollY);
+        return super.mouseScrolled(amx, amy, scrollX, scrollY);
     }
 
     @Override
@@ -346,12 +353,23 @@ public class DollItemSelectScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mx, int my, float d) {
+        double es = extraScale();
+        forceScale4();
+
+        int adjMX = (int) (mx / es);
+        int adjMY = (int) (my / es);
+
+        g.pose().pushPose();
+        g.pose().scale((float) es, (float) es, 1.0f);
+
         renderBg(g);
-        super.render(g, mx, my, d);
-        renderTabs(g, mx, my);
-        renderGrid(g, mx, my);
+        super.render(g, adjMX, adjMY, d);
+        renderTabs(g, adjMX, adjMY);
+        renderGrid(g, adjMX, adjMY);
         renderRightPanel(g);
-        renderDollPreview(g, mx, my);
+        renderDollPreview(g, adjMX, adjMY);
+
+        g.pose().popPose();
     }
 
     private void renderBg(GuiGraphics g) {
@@ -544,6 +562,22 @@ public class DollItemSelectScreen extends Screen {
     @Override
     public boolean isPauseScreen() {
         return false;
+    }
+
+    @Override
+    public void repositionElements() {
+        super.repositionElements();
+        forceScale4();
+    }
+
+    private void forceScale4() {
+        var window = Minecraft.getInstance().getWindow();
+        this.width = Math.max(window.getWidth() / 4, 1);
+        this.height = Math.max(window.getHeight() / 4, 1);
+    }
+
+    private double extraScale() {
+        return 4.0 / Minecraft.getInstance().getWindow().getGuiScale();
     }
 
     public record ItemSelectionResult(ResourceLocation itemId,

@@ -19,10 +19,10 @@ import org.agmas.pathsrole.init.ModRoles;
 public class ShipperMarkClientHandler {
     public static void register() {
         CommonInstinctEvents.ALIVE_COMMON_MIDDLE_EVENT.register((self, target, isInstinctEnabled) -> {
-            if (!(target instanceof Player)) {
+            if (!(target instanceof Player) || !(self instanceof Player)) {
                 return TrueFalseAndCustomResult.pass();
             }
-            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)self.level());
+            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(self.level());
             if (wmc == null || !wmc.isModifier((Player)self, ModModifiers.SHIPPER_MARK)) {
                 return TrueFalseAndCustomResult.pass();
             }
@@ -31,15 +31,35 @@ public class ShipperMarkClientHandler {
             }
             for (Player p : self.level().players()) {
                 if (SREClient.gameComponent == null || !SREClient.gameComponent.isRole(p, ModRoles.SHIPPER)) continue;
-                ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)p);
+                ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(p);
                 if (shipperComp == null) continue;
                 long pairingTime = shipperComp.getPairingTime();
                 if (pairingTime > 0L && System.currentTimeMillis() - pairingTime < 10000L) {
                     return TrueFalseAndCustomResult.pass();
                 }
-                break;
+                continue;
             }
             return TrueFalseAndCustomResult.custom(ModModifiers.SHIPPER_MARK.color());
+        });
+        CommonInstinctEvents.ALIVE_COMMON_MIDDLE_EVENT.register((self, target, isInstinctEnabled) -> {
+            if (!(target instanceof Player) || !(self instanceof Player)) {
+                return TrueFalseAndCustomResult.pass();
+            }
+            if (SREClient.gameComponent == null || !SREClient.gameComponent.isRole((Player)self, ModRoles.SHIPPER)) {
+                return TrueFalseAndCustomResult.pass();
+            }
+            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(self.level());
+            if (wmc == null) {
+                return TrueFalseAndCustomResult.pass();
+            }
+            ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(self);
+            if (shipperComp == null || !shipperComp.isShipperMomentActive()) {
+                return TrueFalseAndCustomResult.pass();
+            }
+            if (wmc.isModifier((Player)target, ModModifiers.SHIPPER_MARK)) {
+                return TrueFalseAndCustomResult.custom(ModModifiers.SHIPPER_MARK.color());
+            }
+            return TrueFalseAndCustomResult.custom(0xFF888888);
         });
         CommonHudRenderCallback.EVENT.register((context, deltaTracker) -> {
             var client = Minecraft.getInstance();
@@ -47,7 +67,7 @@ public class ShipperMarkClientHandler {
             if (player == null) {
                 return;
             }
-            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)player.level());
+            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(player.level());
             if (wmc == null) {
                 return;
             }
@@ -62,20 +82,21 @@ public class ShipperMarkClientHandler {
             }
             for (Player p : player.level().players()) {
                 PlayerInfo loverInfo;
-                List<UUID> lovers;
                 if (SREClient.gameComponent == null || !SREClient.gameComponent.isRole(p, ModRoles.SHIPPER)) continue;
-                ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)p);
-                if (shipperComp == null || !(lovers = shipperComp.getPairedLovers()).contains(player.getUUID())) break;
+                ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(p);
+                if (shipperComp == null) continue;
+                List<UUID> lovers = shipperComp.getPairedLovers();
+                if (!lovers.contains(player.getUUID())) continue;
                 long pairingTime = shipperComp.getPairingTime();
-                if (pairingTime > 0L && System.currentTimeMillis() - pairingTime < 10000L) break;
+                if (pairingTime > 0L && System.currentTimeMillis() - pairingTime < 10000L) continue;
                 UUID otherUUID = null;
                 for (UUID uuid : lovers) {
                     if (uuid.equals(player.getUUID())) continue;
                     otherUUID = uuid;
                     break;
                 }
-                if (otherUUID == null || (loverInfo = client.player.connection.getPlayerInfo(otherUUID)) == null) break;
-                if (loverInfo.getSkin() == null) break;
+                if (otherUUID == null || (loverInfo = client.player.connection.getPlayerInfo(otherUUID)) == null) continue;
+                if (loverInfo.getSkin() == null) continue;
                 SRERole role = SREClient.gameComponent.getRole(otherUUID);
                 Component displayText = Component.literal(loverInfo.getProfile().getName() + " - ").append(role != null ? role.getName() : Component.literal("?"));
                 context.pose().pushPose();
@@ -92,7 +113,7 @@ public class ShipperMarkClientHandler {
             if (player == null) {
                 return;
             }
-            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)player.level());
+            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(player.level());
             if (wmc == null) {
                 return;
             }
@@ -104,8 +125,8 @@ public class ShipperMarkClientHandler {
             }
             for (Player p : player.level().players()) {
                 if (SREClient.gameComponent == null || !SREClient.gameComponent.isRole(p, ModRoles.SHIPPER)) continue;
-                ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get((Object)p);
-                if (shipperComp == null) break;
+                ShipperPlayerComponent shipperComp = (ShipperPlayerComponent)ShipperPlayerComponent.KEY.get(p);
+                if (shipperComp == null) continue;
                 long pairingTime = shipperComp.getPairingTime();
                 long elapsed = System.currentTimeMillis() - pairingTime;
                 if (pairingTime <= 0L || elapsed < 10000L || elapsed >= 20000L || shipperComp.isShipperMomentActive()) break;

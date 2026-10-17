@@ -43,6 +43,13 @@ public class PlayerSkinUtil {
         });
     }
 
+    public static CompletableFuture<String> getSkinUrlForName(String name) {
+        return getUUIDFromName(name).thenCompose(uuid -> {
+            if (uuid == null) return CompletableFuture.completedFuture(null);
+            return getSkinUrl(uuid);
+        });
+    }
+
     public static CompletableFuture<String> getSkinUrl(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -80,6 +87,20 @@ public class PlayerSkinUtil {
                 HttpResponse<InputStream> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofInputStream());
                 if (resp.statusCode() == 200) {
                     return NativeImage.read(resp.body());
+                }
+            } catch (Exception ignored) {
+            }
+            return null;
+        });
+    }
+
+    public static CompletableFuture<byte[]> downloadSkinBytes(String url) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                HttpRequest req = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
+                HttpResponse<byte[]> resp = HTTP_CLIENT.send(req, HttpResponse.BodyHandlers.ofByteArray());
+                if (resp.statusCode() == 200) {
+                    return resp.body();
                 }
             } catch (Exception ignored) {
             }

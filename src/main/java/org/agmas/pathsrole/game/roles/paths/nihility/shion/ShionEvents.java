@@ -338,24 +338,9 @@ public class ShionEvents {
         ServerLivingEntityEvents.ALLOW_DAMAGE.register((entity, source, amount) -> {
             // 坐碗时无敌 —— 参考神社免疫写法
             if (entity.level().isClientSide()) return true;
-            if (entity instanceof Player player) {
-                ShionPlayerComponent comp = PathsroleComponents.getShionComponent(player);
-                if (comp != null && comp.isSitting()) {
-                    return false;
-                }
-            }
-            if (source.getDirectEntity() instanceof Player atk) {
-                ShionPlayerComponent comp = PathsroleComponents.getShionComponent(atk);
-                if (comp != null && comp.isSitting()) {
-                    return false;
-                }
-            }
-            if (source.getEntity() instanceof Player src) {
-                ShionPlayerComponent comp = PathsroleComponents.getShionComponent(src);
-                if (comp != null && comp.isSitting()) {
-                    return false;
-                }
-            }
+            if (entity instanceof Player player && isSittingShion(player)) return false;
+            if (source.getDirectEntity() instanceof Player atk && isSittingShion(atk)) return false;
+            if (source.getEntity() instanceof Player src && isSittingShion(src)) return false;
             return true;
         });
 
@@ -441,41 +426,17 @@ public class ShionEvents {
         //  坐碗时无敌 —— 覆盖所有死亡路径
         // ============================================================
 
-        // 1. 无击杀者的死亡（摔出列车、中毒等）
-        AllowPlayerDeath.EVENT.register((player, deathReason) -> {
-            ShionPlayerComponent comp = PathsroleComponents.getShionComponent(player);
-            if (comp != null && comp.isSitting()) {
-                return false;
-            }
-            return true;
-        });
+        AllowPlayerDeath.EVENT.register((player, deathReason) ->
+                !isSittingShion(player));
 
-        // 2. 有击杀者的直接杀死（红美铃5拳等）
-        AllowPlayerDeathWithKiller.EVENT.register((player, killer, deathReason) -> {
-            ShionPlayerComponent comp = PathsroleComponents.getShionComponent(player);
-            if (comp != null && comp.isSitting()) {
-                return false;
-            }
-            return true;
-        });
+        AllowPlayerDeathWithKiller.EVENT.register((player, killer, deathReason) ->
+                !isSittingShion(player));
 
-        // 3. 护盾后无击杀者
-        AfterShieldAllowPlayerDeath.EVENT.register((player, deathReason) -> {
-            ShionPlayerComponent comp = PathsroleComponents.getShionComponent(player);
-            if (comp != null && comp.isSitting()) {
-                return false;
-            }
-            return true;
-        });
+        AfterShieldAllowPlayerDeath.EVENT.register((player, deathReason) ->
+                !isSittingShion(player));
 
-        // 4. 护盾后有击杀者
-        AfterShieldAllowPlayerDeathWithKiller.EVENT.register((player, killer, deathReason) -> {
-            ShionPlayerComponent comp = PathsroleComponents.getShionComponent(player);
-            if (comp != null && comp.isSitting()) {
-                return false;
-            }
-            return true;
-        });
+        AfterShieldAllowPlayerDeathWithKiller.EVENT.register((player, killer, deathReason) ->
+                !isSittingShion(player));
     }
 
     // ============================================================
@@ -735,5 +696,14 @@ public class ShionEvents {
                         true);
             }
         }
+    }
+
+    // ============================================================
+    //  辅助方法
+    // ============================================================
+
+    private static boolean isSittingShion(Player player) {
+        ShionPlayerComponent comp = PathsroleComponents.getShionComponent(player);
+        return comp != null && comp.isSitting();
     }
 }

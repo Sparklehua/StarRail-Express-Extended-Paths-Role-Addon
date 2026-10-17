@@ -8,7 +8,7 @@ import net.minecraft.network.codec.StreamCodec;
 
 public record ReimuBarrierPacket(Vec3 center, boolean active, int duration) implements CustomPacketPayload
 {
-    public static final CustomPacketPayload.Type<ReimuBarrierPacket> ID = new CustomPacketPayload.Type(ResourceLocation.fromNamespaceAndPath((String)"pathsrole", (String)"reimu_barrier"));
+    public static final CustomPacketPayload.Type<ReimuBarrierPacket> ID = new CustomPacketPayload.Type(ResourceLocation.fromNamespaceAndPath("pathsrole", "reimu_barrier"));
     public static final StreamCodec<RegistryFriendlyByteBuf, ReimuBarrierPacket> CODEC = StreamCodec.of(ReimuBarrierPacket::encode, ReimuBarrierPacket::decode);
 
     private static void encode(RegistryFriendlyByteBuf buf, ReimuBarrierPacket packet) {

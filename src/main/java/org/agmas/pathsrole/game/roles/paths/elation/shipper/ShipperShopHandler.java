@@ -7,7 +7,7 @@ import net.minecraft.world.level.ItemLike;
 import org.agmas.noellesroles.init.ModItems;
 
 public class ShipperShopHandler {
-    private static List<ShopEntry> entries;
+    private static List<ShopEntry> entries = List.of();
 
     public static void init() {
         entries = List.of(new ShopEntry(new ItemStack((net.minecraft.world.level.ItemLike)ModItems.MASTER_KEY_P), 50, ShopEntry.Type.TOOL));

@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ModModifiers {
-    private static final Logger LOGGER = LoggerFactory.getLogger((String)"Pathsrole-Modifiers");
+    private static final Logger LOGGER = LoggerFactory.getLogger("Pathsrole-Modifiers");
     public static SREModifier REIMU_CURSE;
     public static SREModifier SHIPPER_MARK;
     public static SREModifier AHA_BLESSING;
@@ -36,14 +36,14 @@ public class ModModifiers {
     public static final Set<UUID> BLINDNESS_APPLIED_PLAYERS = new HashSet<>();
 
     public static void init() {
-        REIMU_CURSE = HMLModifiers.registerModifier((SREModifier)new SREModifier(PathsRoleMod.id("reimu_curse"), new Color(139, 0, 0).getRGB(), (Collection)null, (Collection)null, false, true)).setDefaultEnableChance(0);
-        SHIPPER_MARK = HMLModifiers.registerModifier((SREModifier)new SREModifier(PathsRoleMod.id("shipper_mark"), new Color(255, 105, 180).getRGB(), (Collection)null, (Collection)null, false, false)).setDefaultEnableChance(0);
-        AHA_BLESSING = HMLModifiers.registerModifier((SREModifier)new SREModifier(PathsRoleMod.id("aha_blessing"), new Color(255, 215, 0).getRGB(), (Collection)null, (Collection)null, false, false)).setDefaultEnableChance(0).setHidden(false);
-        LOGGER.info("Registered modifier: {}", (Object)REIMU_CURSE.identifier());
+        REIMU_CURSE = HMLModifiers.registerModifier(new SREModifier(PathsRoleMod.id("reimu_curse"), new Color(139, 0, 0).getRGB(), (Collection)null, (Collection)null, false, true)).setDefaultEnableChance(0);
+        SHIPPER_MARK = HMLModifiers.registerModifier(new SREModifier(PathsRoleMod.id("shipper_mark"), new Color(255, 105, 180).getRGB(), (Collection)null, (Collection)null, false, false)).setDefaultEnableChance(0);
+        AHA_BLESSING = HMLModifiers.registerModifier(new SREModifier(PathsRoleMod.id("aha_blessing"), new Color(255, 215, 0).getRGB(), (Collection)null, (Collection)null, false, false)).setDefaultEnableChance(0).setHidden(false);
+        LOGGER.info("Registered modifier: {}", REIMU_CURSE.identifier());
         AhaBlessingHandler.init();
         OnPlayerDeathWithKiller.EVENT.register((victim, killer, deathReason) -> {
             if (killer == null) return;
-            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)victim.level());
+            WorldModifierComponent wmc = (WorldModifierComponent)WorldModifierComponent.KEY.get(victim.level());
             if (wmc == null) return;
             if (!wmc.isModifier(victim.getUUID(), AHA_BLESSING)) return;
             wmc.removeModifier(victim.getUUID(), AHA_BLESSING);
@@ -53,7 +53,7 @@ public class ModModifiers {
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 WorldModifierComponent modifiers;
                 SREGameWorldComponent gameWorld;
-                if (!GameUtils.isPlayerAliveAndSurvival((Player)player) || (gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)player.serverLevel())) == null || !gameWorld.isRunning() || (modifiers = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)player.serverLevel())) == null || !modifiers.isModifier(player.getUUID(), REIMU_CURSE)) continue;
+                if (!GameUtils.isPlayerAliveAndSurvival((Player)player) || (gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(player.serverLevel())) == null || !gameWorld.isRunning() || (modifiers = (WorldModifierComponent)WorldModifierComponent.KEY.get(player.serverLevel())) == null || !modifiers.isModifier(player.getUUID(), REIMU_CURSE)) continue;
                 player.addEffect(new MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, 999999, 2, false, false, true));
                 if (!BLINDNESS_APPLIED_PLAYERS.contains(player.getUUID())) {
                     player.addEffect(new MobEffectInstance(net.minecraft.world.effect.MobEffects.UNLUCK, 200, 0, false, false, true));
@@ -62,19 +62,19 @@ public class ModModifiers {
                 Long lastTime = LAST_COIN_DEDUCT_TIME.get(player.getUUID());
                 long now = System.currentTimeMillis();
                 if (lastTime != null && now - lastTime < 60000L) continue;
-                SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)player);
+                SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get(player);
                 if (shop == null) continue;
                 int newBalance = Math.max(0, shop.balance - 10);
                 shop.setBalance(newBalance);
                 shop.sync();
                 LAST_COIN_DEDUCT_TIME.put(player.getUUID(), now);
-                player.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.reimu_curse.coin_deduct").withStyle(ChatFormatting.RED), true);
+                player.displayClientMessage(Component.translatable("message.pathsrole.reimu_curse.coin_deduct").withStyle(ChatFormatting.RED), true);
             }
         });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)server.overworld());
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(server.overworld());
             if (gameWorld == null || gameWorld.isRunning()) return;
-            WorldModifierComponent modifiers = (WorldModifierComponent)WorldModifierComponent.KEY.get((Object)server.overworld());
+            WorldModifierComponent modifiers = (WorldModifierComponent)WorldModifierComponent.KEY.get(server.overworld());
             if (modifiers == null) return;
             for (ServerPlayer player : server.getPlayerList().getPlayers()) {
                 if (!modifiers.isModifier(player.getUUID(), REIMU_CURSE)) continue;

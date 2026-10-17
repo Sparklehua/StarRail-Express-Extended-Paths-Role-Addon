@@ -24,6 +24,10 @@ public record CraftDollPayload(String playerName, float[] boneData,
     private static float[] readFloatArray(RegistryFriendlyByteBuf buf) {
         int len = buf.readVarInt();
         if (len == 0) return new float[0];
+        if (len > 30) {
+            buf.skipBytes(len * 4);
+            return new float[0];
+        }
         float[] arr = new float[len];
         for (int i = 0; i < len; i++) arr[i] = buf.readFloat();
         return arr;

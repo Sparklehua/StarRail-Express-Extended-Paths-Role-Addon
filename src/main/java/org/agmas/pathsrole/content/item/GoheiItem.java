@@ -29,7 +29,7 @@ extends Item {
             return InteractionResultHolder.pass(stack);
         }
         ServerPlayer serverPlayer = (ServerPlayer)user;
-        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)level);
+        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(level);
         if (gameWorld != null && gameWorld.isRunning() && !gameWorld.isRole(user, ModRoles.REIMU)) {
             user.displayClientMessage(Component.translatable("message.pathsrole.gohei.not_reimu"), true);
             return InteractionResultHolder.pass(stack);

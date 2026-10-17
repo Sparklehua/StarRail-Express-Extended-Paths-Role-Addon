@@ -22,20 +22,20 @@ public abstract class ShipperFadeAlphaMixin<T extends LivingEntity> {
     protected ShipperFadeAlphaMixin(EntityRendererProvider.Context ctx) {}
 
     @Unique
-    private boolean pathsrole$fading = false;
+    private static final ThreadLocal<Boolean> PATHSROLE_FADING = ThreadLocal.withInitial(() -> false);
 
-    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "render", at = @At("HEAD"), cancellable = true, require = 1)
     private void pathsrole$fadeRender(T entity, float entityYaw, float partialTick,
                                        PoseStack poseStack, MultiBufferSource buffer,
                                        int packedLight, CallbackInfo ci) {
-        if (pathsrole$fading) return;
+        if (PATHSROLE_FADING.get()) return;
         if (!(entity instanceof Player player)) return;
-        ShipperPlayerComponent comp = ShipperPlayerComponent.KEY.get(player);
+        ShipperPlayerComponent comp = ShipperPlayerComponent.KEY.getNullable(player);
         if (comp == null) return;
         float alpha = comp.getInvisibilityAlpha();
         if (alpha >= 0.99f || alpha <= 0.01f) return;
 
-        pathsrole$fading = true;
+        PATHSROLE_FADING.set(true);
         ci.cancel();
         try {
             RenderSystem.enableBlend();
@@ -43,9 +43,9 @@ public abstract class ShipperFadeAlphaMixin<T extends LivingEntity> {
             MultiBufferSource wrapped = new AlphaBufferSource(buffer, alpha);
             LivingEntityRenderer renderer = (LivingEntityRenderer)(Object)this;
             renderer.render(entity, entityYaw, partialTick, poseStack, wrapped, packedLight);
-            RenderSystem.disableBlend();
         } finally {
-            pathsrole$fading = false;
+            RenderSystem.disableBlend();
+            PATHSROLE_FADING.set(false);
         }
     }
 

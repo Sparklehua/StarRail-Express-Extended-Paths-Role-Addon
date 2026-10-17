@@ -1,5 +1,6 @@
 package org.agmas.pathsrole.init;
 
+import net.fabricmc.fabric.api.object.builder.v1.entity.FabricDefaultAttributeRegistry;
 import net.fabricmc.fabric.api.object.builder.v1.entity.FabricEntityTypeBuilder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -8,6 +9,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import org.agmas.pathsrole.PathsRoleMod;
 import org.agmas.pathsrole.content.entity.ThrownFlowerDoll;
+import org.agmas.pathsrole.content.entity.SheerHeartEntity;
 import org.agmas.pathsrole.content.entity.YinYangOrbEntity;
 
 public class ModEntities {
@@ -31,6 +33,15 @@ public class ModEntities {
             .build()
     );
 
+    public static final EntityType<SheerHeartEntity> SHEER_HEART = Registry.register(
+        BuiltInRegistries.ENTITY_TYPE,
+        PathsRoleMod.id("sheer_heart"),
+        FabricEntityTypeBuilder.<SheerHeartEntity>create(MobCategory.MONSTER, SheerHeartEntity::new)
+            .dimensions(EntityDimensions.fixed(0.6F, 1.8F))
+            .build()
+    );
+
     public static void init() {
+        FabricDefaultAttributeRegistry.register(SHEER_HEART, SheerHeartEntity.createAttributes());
     }
 }

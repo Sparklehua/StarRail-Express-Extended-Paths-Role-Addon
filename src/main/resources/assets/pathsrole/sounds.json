@@ -1,1 +1,38 @@
-{}
+{
+  "kira_bites_the_dust": {
+    "category": "master",
+    "sounds": [
+      {
+        "name": "pathsrole:kira_bites_the_dust",
+        "stream": false
+      }
+    ]
+  },
+  "sheer_heart_step": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "pathsrole:sheer_heart_step",
+        "stream": false
+      }
+    ]
+  },
+  "sheer_heart_bomb": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "pathsrole:sheer_heart_bomb",
+        "stream": false
+      }
+    ]
+  },
+  "josuke_revive": {
+    "category": "player",
+    "sounds": [
+      {
+        "name": "pathsrole:josuke_revive",
+        "stream": false
+      }
+    ]
+  }
+}

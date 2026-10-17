@@ -31,7 +31,7 @@ public final class DonationBoxRenderer {
             return;
         }
         for (BlockPos pos : DonationBoxDataManager.getClientOwnedBoxes()) {
-            TaskBlockOverlayRenderer.renderBlockOverlay((WorldRenderContext)context, (BlockPos)pos, (Color)REIMU_COLOR, (float)1.0f, (boolean)true, (float)0.0f);
+            TaskBlockOverlayRenderer.renderBlockOverlay((WorldRenderContext)context, (BlockPos)pos, (Color)REIMU_COLOR, (float)1.0f, true, (float)0.0f);
         }
     }
 }

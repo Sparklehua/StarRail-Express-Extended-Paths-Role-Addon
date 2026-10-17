@@ -67,7 +67,7 @@ ClientTickingComponent {
 
     public void sync() {
         if (this.player != null) {
-            KEY.sync((Object)this.player);
+            KEY.sync(this.player);
         }
     }
 

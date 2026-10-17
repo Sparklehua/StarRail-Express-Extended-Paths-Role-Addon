@@ -34,14 +34,14 @@ public class RoleMethodDispatcherMixin {
         if (player == null || player.level() == null) {
             return;
         }
-        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)player.level());
+        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(player.level());
         if (gameWorld == null || !gameWorld.isRunning()) {
             return;
         }
         if (ModRoles.REIMU == null || !gameWorld.isRole(player, ModRoles.REIMU)) {
             return;
         }
-        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get((Object)player);
+        SREPlayerShopComponent shop = (SREPlayerShopComponent)SREPlayerShopComponent.KEY.get(player);
         if (shop == null) {
             return;
         }

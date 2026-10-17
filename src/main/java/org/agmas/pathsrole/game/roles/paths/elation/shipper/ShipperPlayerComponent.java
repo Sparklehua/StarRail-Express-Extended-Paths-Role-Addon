@@ -9,12 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import net.minecraft.core.Holder;
-import net.minecraft.core.Registry;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.protocol.game.ClientboundStopSoundPacket;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -32,7 +26,6 @@ import net.minecraft.core.component.DataComponents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import org.agmas.pathsrole.cca.PathsroleComponents;
 import org.agmas.harpymodloader.component.WorldModifierComponent;
-import org.agmas.pathsrole.PathsRoleMod;
 import org.agmas.pathsrole.init.ModItems;
 import org.agmas.pathsrole.init.ModModifiers;
 import org.agmas.pathsrole.init.ModRoles;
@@ -40,14 +33,6 @@ import org.ladysnake.cca.api.v3.component.ComponentKey;
 
 public class ShipperPlayerComponent
 implements RoleComponent {
-    public static Holder.Reference<SoundEvent> SHIPPER_MOMENT_MUSIC;
-
-    public static void initSounds() {
-        // 暂时移除磕学时刻音乐
-        // SHIPPER_MOMENT_MUSIC = Registry.registerForHolder(BuiltInRegistries.SOUND_EVENT,
-        //         PathsRoleMod.id("music.shipper_moment"),
-        //         SoundEvent.createVariableRangeEvent(PathsRoleMod.id("music.shipper_moment")));
-    }
 
     public static void initFadeTick() {
         ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -63,7 +48,7 @@ implements RoleComponent {
     public static final ComponentKey<ShipperPlayerComponent> KEY = PathsroleComponents.SHIPPER_PLAYER_KEY;
     public static final int SHIP_COOLDOWN_SECONDS = 7;
     public static final int REPAIR_COOLDOWN_SECONDS = 7;
-    public static final int OBSERVATION_COOLDOWN_SECONDS = 5;
+    public static final int OBSERVATION_COOLDOWN_SECONDS = 10;
     private final Player player;
     private UUID firstTarget;
     private long firstTargetTime;
@@ -72,12 +57,12 @@ implements RoleComponent {
     private boolean shipperMomentActive;
     private boolean shipperMomentCompleted;
     private long lastInteractionTick;
-    private long betrayalEndTime;
     private final List<UUID> absorbedPlayers = new ArrayList<UUID>();
     private final Map<UUID, String> playerNames = new HashMap<UUID, String>();
     private UUID rageKiller;
     private boolean rageActive;
     private UUID rageVictimUUID;
+    private long rageEndCooldownMs;
     private long observationCooldownEnd;
     private boolean observationActive;
     private UUID pendingBetrayalKiller;
@@ -85,13 +70,14 @@ implements RoleComponent {
     private long pairingTime;
     private long bookCooldownEnd;
     private int shipperMomentAbsorbedCount;
-    private boolean shipperMomentArmorGiven;
-    private int shipperMomentAbsorptionArmorCount;
     private final List<UUID> momentRevolverRecipients = new ArrayList<>();
     private double lastStillCheckX;
     private double lastStillCheckY;
     private double lastStillCheckZ;
+    private boolean lastStillCheckInitialized;
     private int stillTicks;
+    private int fadeTicks;
+    private int subordinateProtectionTicks;
     private double cumulativeMoveXZ;
     private double cumulativeMoveY;
     private FadeState fadeState = FadeState.VISIBLE;
@@ -101,7 +87,6 @@ implements RoleComponent {
     public static final double RESTORE_DISTANCE_Y = 0.5;
     public static final float RESTORE_SPEED_PER_TICK = 0.05f;
     private float invisibilityAlpha = 1.0f;
-    private int momentMusicTimer = 0;
     
     private enum FadeState {
         VISIBLE,
@@ -128,10 +113,10 @@ implements RoleComponent {
         this.shipperMomentActive = false;
         this.shipperMomentCompleted = false;
         this.lastInteractionTick = 0L;
-        this.betrayalEndTime = 0L;
         this.rageKiller = null;
         this.rageActive = false;
         this.rageVictimUUID = null;
+        this.rageEndCooldownMs = 0L;
         this.observationCooldownEnd = 0L;
         this.observationActive = false;
         this.pendingBetrayalKiller = null;
@@ -139,12 +124,13 @@ implements RoleComponent {
         this.pairingTime = 0L;
         this.bookCooldownEnd = 0L;
         this.shipperMomentAbsorbedCount = 0;
-        this.shipperMomentArmorGiven = false;
-        this.shipperMomentAbsorptionArmorCount = 0;
         this.lastStillCheckX = 0.0;
         this.lastStillCheckY = 0.0;
         this.lastStillCheckZ = 0.0;
+        this.lastStillCheckInitialized = false;
         this.stillTicks = 0;
+        this.fadeTicks = 0;
+        this.subordinateProtectionTicks = 0;
         this.momentRevolverRecipients.clear();
         this.cumulativeMoveXZ = 0.0;
         this.cumulativeMoveY = 0.0;
@@ -159,7 +145,7 @@ implements RoleComponent {
 
     public void sync() {
         if (this.player != null) {
-            KEY.sync((Object)this.player);
+            KEY.sync(this.player);
         }
     }
 
@@ -226,6 +212,9 @@ implements RoleComponent {
     }
 
     public void clearPairedLovers() {
+        for (UUID uuid : this.pairedLovers) {
+            this.playerNames.remove(uuid);
+        }
         this.pairedLovers.clear();
         this.sync();
     }
@@ -245,7 +234,7 @@ implements RoleComponent {
         Player player = this.getPlayer();
         if (player instanceof ServerPlayer sp) {
             WorldModifierComponent wmc = (WorldModifierComponent) WorldModifierComponent.KEY
-                    .get((Object) sp.serverLevel());
+                    .get(sp.serverLevel());
             if (wmc != null) {
                 if (active) {
                     wmc.addModifier(sp.getUUID(), ModModifiers.AHA_BLESSING);
@@ -254,39 +243,7 @@ implements RoleComponent {
                     retrieveMomentRevolvers(sp);
                 }
             }
-            // 磕学时刻音乐 - 暂时移除
-            /*
-            try {
-                if (SHIPPER_MOMENT_MUSIC == null || SHIPPER_MOMENT_MUSIC.value() == null) return;
-                SoundEvent music = SHIPPER_MOMENT_MUSIC.value();
-                if (music.getLocation() == null) return;
-                if (sp.serverLevel() == null) return;
-                if (active) {
-                    sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
-                            music, SoundSource.RECORDS, 5.0F, 1.0F);
-                    this.momentMusicTimer = 2360;
-                } else {
-                    for (ServerPlayer target : sp.serverLevel().players()) {
-                        if (target == null || target.connection == null) continue;
-                        target.connection.send(new ClientboundStopSoundPacket(
-                                music.getLocation(), SoundSource.RECORDS));
-                    }
-                    this.momentMusicTimer = -1;
-                }
-            } catch (Exception e) {
-                PathsRoleMod.LOGGER.error("[ShipperMoment] 音乐播放/停止出错", e);
-            }
-            */
         }
-    }
-
-    public long getBetrayalEndTime() {
-        return this.betrayalEndTime;
-    }
-
-    public void setBetrayalEndTime(long time) {
-        this.betrayalEndTime = time;
-        this.sync();
     }
 
     public List<UUID> getMomentRevolverRecipients() {
@@ -319,17 +276,6 @@ implements RoleComponent {
             }
         }
         this.momentRevolverRecipients.clear();
-    }
-
-    public boolean isBetrayalActive() {
-        return this.betrayalEndTime > 0L && System.currentTimeMillis() < this.betrayalEndTime;
-    }
-
-    public long getBetrayalRemainingSeconds() {
-        if (!this.isBetrayalActive()) {
-            return 0L;
-        }
-        return (this.betrayalEndTime - System.currentTimeMillis()) / 1000L;
     }
 
     public List<UUID> getAbsorbedPlayers() {
@@ -379,6 +325,7 @@ implements RoleComponent {
         this.rageActive = false;
         this.rageVictimUUID = null;
         this.updateBookVisibility(false);
+        this.rageEndCooldownMs = System.currentTimeMillis() + 100_000L;
         this.sync();
     }
 
@@ -500,24 +447,6 @@ implements RoleComponent {
         this.sync();
     }
 
-    public boolean isShipperMomentArmorGiven() {
-        return this.shipperMomentArmorGiven;
-    }
-
-    public void setShipperMomentArmorGiven(boolean given) {
-        this.shipperMomentArmorGiven = given;
-        this.sync();
-    }
-
-    public int getShipperMomentAbsorptionArmorCount() {
-        return this.shipperMomentAbsorptionArmorCount;
-    }
-
-    public void setShipperMomentAbsorptionArmorCount(int count) {
-        this.shipperMomentAbsorptionArmorCount = count;
-        this.sync();
-    }
-
     public UUID getPendingBetrayalKiller() {
         return this.pendingBetrayalKiller;
     }
@@ -556,6 +485,17 @@ implements RoleComponent {
         return (this.rePairCooldownEnd - System.currentTimeMillis()) / 1000L;
     }
 
+    public boolean isInRageEndCooldown() {
+        return System.currentTimeMillis() < this.rageEndCooldownMs;
+    }
+
+    public long getRageEndCooldownRemainingSeconds() {
+        if (!this.isInRageEndCooldown()) {
+            return 0L;
+        }
+        return (this.rageEndCooldownMs - System.currentTimeMillis()) / 1000L;
+    }
+
     public boolean isFirstTargetExpired() {
         if (this.firstTarget == null || this.firstTargetTime == 0L) {
             return false;
@@ -578,12 +518,12 @@ implements RoleComponent {
     }
 
     public void serverTick() {
-        Player Player2 = this.player;
-        if (!(Player2 instanceof ServerPlayer)) {
+        Player p = this.player;
+        if (!(p instanceof ServerPlayer)) {
             return;
         }
-        ServerPlayer sp = (ServerPlayer)Player2;
-        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)sp.level());
+        ServerPlayer sp = (ServerPlayer)p;
+        SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(sp.level());
         if (gameWorld == null || !gameWorld.isRunning()) {
             return;
         }
@@ -600,41 +540,38 @@ implements RoleComponent {
             sp.removeEffect(MobEffects.BLINDNESS);
         }
         if (sp.level().getGameTime() % 20L == 0L) {
-            Player killerPlayer;
             ShipperEvents.checkShipperMomentTrigger(sp, this);
-            for (ServerPlayer player : sp.serverLevel().players()) {
-                Long endTime = ShipperEvents.betrayalEndTimes.get(player.getUUID());
-                if (endTime == null) continue;
-                long remaining = (endTime - System.currentTimeMillis()) / 1000L;
-                if (remaining > 0L) {
-                    player.displayClientMessage((Component)Component.translatable((String)"message.pathsrole.shipper.betrayal_hud", (Object[])new Object[]{remaining}).withStyle(ChatFormatting.RED), true);
-                    continue;
+            if (this.rageActive && this.rageKiller != null) {
+                Player killer = sp.level().getPlayerByUUID(this.rageKiller);
+                if (killer == null || !GameUtils.isPlayerAliveAndSurvival(killer)) {
+                    this.clearRage();
                 }
-                ShipperEvents.betrayalEndTimes.remove(player.getUUID());
-            }
-            if (this.rageActive && this.rageKiller != null && ((killerPlayer = sp.level().getPlayerByUUID(this.rageKiller)) == null || !GameUtils.isPlayerAliveAndSurvival((Player)killerPlayer))) {
-                this.clearRage();
             }
             }
-        /* 暂时移除磕学时刻音乐循环
-        if (this.shipperMomentActive && this.momentMusicTimer >= 0) {
-            if (this.momentMusicTimer <= 0) {
-                try {
-                    if (SHIPPER_MOMENT_MUSIC != null && SHIPPER_MOMENT_MUSIC.value() != null) {
-                        SoundEvent music = SHIPPER_MOMENT_MUSIC.value();
-                        if (music.getLocation() != null && sp.serverLevel() != null) {
-                            sp.serverLevel().playSound(null, sp.getX(), sp.getY(), sp.getZ(),
-                                    music, SoundSource.RECORDS, 5.0F, 1.0F);
-                        }
+        if (!this.rageActive && !this.shipperMomentActive && sp.isAlive()) {
+            WorldModifierComponent wmc = WorldModifierComponent.KEY.get(sp.serverLevel());
+            if (wmc != null) {
+                ServerPlayer soleSurvivor = null;
+                int markedAliveCount = 0;
+                for (ServerPlayer otherPlayer : sp.serverLevel().players()) {
+                    if (!GameUtils.isPlayerAliveAndSurvival(otherPlayer)) continue;
+                    if (wmc.isModifier(otherPlayer.getUUID(), ModModifiers.SHIPPER_MARK)) {
+                        markedAliveCount++;
+                        soleSurvivor = otherPlayer;
                     }
-                } catch (Exception e) {
-                    PathsRoleMod.LOGGER.error("[ShipperMoment] 音乐循环播放出错", e);
                 }
-                this.momentMusicTimer = 2360;
+                if (markedAliveCount == 1 && soleSurvivor != null) {
+                    this.subordinateProtectionTicks++;
+                    if (this.subordinateProtectionTicks >= 50) {
+                        String survivorName = soleSurvivor.getGameProfile() != null ? soleSurvivor.getGameProfile().getName() : soleSurvivor.getName().getString();
+                        this.setRageKiller(soleSurvivor.getUUID(), survivorName, soleSurvivor.getUUID());
+                        this.subordinateProtectionTicks = 0;
+                    }
+                } else {
+                    this.subordinateProtectionTicks = 0;
+                }
             }
-            this.momentMusicTimer--;
         }
-        */
         if (!this.observationActive) {
             if (this.fadeState != FadeState.VISIBLE || this.invisibilityAlpha < 1.0f) {
                 this.forceRestoreVisible();
@@ -642,12 +579,14 @@ implements RoleComponent {
             this.lastStillCheckX = sp.getX();
             this.lastStillCheckY = sp.getY();
             this.lastStillCheckZ = sp.getZ();
+            this.lastStillCheckInitialized = false;
             return;
         }
-        if (this.lastStillCheckX == 0.0 && this.lastStillCheckY == 0.0 && this.lastStillCheckZ == 0.0) {
+        if (!this.lastStillCheckInitialized) {
             this.lastStillCheckX = sp.getX();
             this.lastStillCheckY = sp.getY();
             this.lastStillCheckZ = sp.getZ();
+            this.lastStillCheckInitialized = true;
             return;
         }
         boolean isForcedMove = sp.hurtTime > 0 || sp.isSwimming() || sp.isFallFlying() || sp.isPassenger();
@@ -681,10 +620,11 @@ implements RoleComponent {
                     this.fadeState = FadeState.RESTORING;
                     this.cumulativeMoveXZ = distXZ;
                     this.cumulativeMoveY = distY;
+                    this.fadeTicks = 0;
                     this.stillTicks = 0;
                 } else {
-                    this.stillTicks++;
-                    int fadeProgress = this.stillTicks - STILL_THRESHOLD_TICKS + 1;
+                    this.fadeTicks++;
+                    int fadeProgress = this.fadeTicks;
                     float targetAlpha;
                     if (fadeProgress <= FADE_DURATION_TICKS) {
                         targetAlpha = Math.max(0.0f, 1.0f - ((float)fadeProgress / FADE_DURATION_TICKS));
@@ -747,9 +687,7 @@ implements RoleComponent {
         tag.putLong("RePairCooldownEnd", this.rePairCooldownEnd);
         tag.putBoolean("ShipperMomentActive", this.shipperMomentActive);
         tag.putBoolean("ShipperMomentCompleted", this.shipperMomentCompleted);
-        tag.putInt("MomentMusicTimer", this.momentMusicTimer);
         tag.putLong("LastInteractionTick", this.lastInteractionTick);
-        tag.putLong("BetrayalEndTime", this.betrayalEndTime);
         if (this.rageKiller != null) {
             tag.putUUID("RageKiller", this.rageKiller);
         }
@@ -757,6 +695,7 @@ implements RoleComponent {
         if (this.rageVictimUUID != null) {
             tag.putUUID("RageVictimUUID", this.rageVictimUUID);
         }
+        tag.putLong("RageEndCooldownMs", this.rageEndCooldownMs);
         tag.putLong("ObservationCooldownEnd", this.observationCooldownEnd);
         tag.putBoolean("ObservationActive", this.observationActive);
         if (this.pendingBetrayalKiller != null) {
@@ -774,11 +713,10 @@ implements RoleComponent {
         tag.put("AbsorbedPlayers", absorbedList);
         tag.putLong("BookCooldownEnd", this.bookCooldownEnd);
         tag.putInt("ShipperMomentAbsorbedCount", this.shipperMomentAbsorbedCount);
-        tag.putBoolean("ShipperMomentArmorGiven", this.shipperMomentArmorGiven);
-        tag.putInt("ShipperMomentAbsorptionArmorCount", this.shipperMomentAbsorptionArmorCount);
         tag.putFloat("InvisibilityAlpha", this.invisibilityAlpha);
-        tag.putInt("FadeState", this.fadeState.ordinal());
+        tag.putString("FadeState", this.fadeState.name());
         tag.putInt("StillTicks", this.stillTicks);
+        tag.putInt("FadeTicks", this.fadeTicks);
         tag.putDouble("CumulativeMoveXZ", this.cumulativeMoveXZ);
         tag.putDouble("CumulativeMoveY", this.cumulativeMoveY);
         ListTag revolverList = new ListTag();
@@ -810,12 +748,11 @@ implements RoleComponent {
         this.rePairCooldownEnd = tag.getLong("RePairCooldownEnd");
         this.shipperMomentActive = tag.getBoolean("ShipperMomentActive");
         this.shipperMomentCompleted = tag.getBoolean("ShipperMomentCompleted");
-        this.momentMusicTimer = tag.getInt("MomentMusicTimer");
         this.lastInteractionTick = tag.getLong("LastInteractionTick");
-        this.betrayalEndTime = tag.getLong("BetrayalEndTime");
         this.rageKiller = tag.contains("RageKiller") ? tag.getUUID("RageKiller") : null;
         this.rageActive = tag.getBoolean("RageActive");
         this.rageVictimUUID = tag.contains("RageVictimUUID") ? tag.getUUID("RageVictimUUID") : null;
+        this.rageEndCooldownMs = tag.contains("RageEndCooldownMs") ? tag.getLong("RageEndCooldownMs") : 0L;
         this.observationCooldownEnd = tag.getLong("ObservationCooldownEnd");
         this.observationActive = tag.getBoolean("ObservationActive");
         this.pendingBetrayalKiller = tag.contains("PendingBetrayalKiller") ? tag.getUUID("PendingBetrayalKiller") : null;
@@ -833,17 +770,27 @@ implements RoleComponent {
         }
         this.bookCooldownEnd = tag.getLong("BookCooldownEnd");
         this.shipperMomentAbsorbedCount = tag.getInt("ShipperMomentAbsorbedCount");
-        this.shipperMomentArmorGiven = tag.getBoolean("ShipperMomentArmorGiven");
-        this.shipperMomentAbsorptionArmorCount = tag.getInt("ShipperMomentAbsorptionArmorCount");
         this.invisibilityAlpha = tag.getFloat("InvisibilityAlpha");
         if (tag.contains("FadeState")) {
-            int stateOrdinal = tag.getInt("FadeState");
-            if (stateOrdinal >= 0 && stateOrdinal < FadeState.values().length) {
-                this.fadeState = FadeState.values()[stateOrdinal];
+            String fadeStateStr = tag.getString("FadeState");
+            if (!fadeStateStr.isEmpty()) {
+                try {
+                    this.fadeState = FadeState.valueOf(fadeStateStr);
+                } catch (IllegalArgumentException e) {
+                    this.fadeState = FadeState.VISIBLE;
+                }
+            } else {
+                int stateOrdinal = tag.getInt("FadeState");
+                if (stateOrdinal >= 0 && stateOrdinal < FadeState.values().length) {
+                    this.fadeState = FadeState.values()[stateOrdinal];
+                }
             }
         }
         if (tag.contains("StillTicks")) {
             this.stillTicks = tag.getInt("StillTicks");
+        }
+        if (tag.contains("FadeTicks")) {
+            this.fadeTicks = tag.getInt("FadeTicks");
         }
         if (tag.contains("CumulativeMoveXZ")) {
             this.cumulativeMoveXZ = tag.getDouble("CumulativeMoveXZ");
@@ -856,7 +803,9 @@ implements RoleComponent {
             ListTag revolverList = tag.getList("MomentRevolverRecipients", 10);
             for (int j = 0; j < revolverList.size(); ++j) {
                 CompoundTag recipientTag = revolverList.getCompound(j);
-                this.momentRevolverRecipients.add(recipientTag.getUUID("UUID"));
+                if (recipientTag.contains("UUID")) {
+                    this.momentRevolverRecipients.add(recipientTag.getUUID("UUID"));
+                }
             }
         }
     }

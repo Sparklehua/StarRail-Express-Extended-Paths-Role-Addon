@@ -6,16 +6,18 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class SkinTextureManager {
-    private static final Map<ResourceLocation, Object> loadedTextures = new HashMap<>();
+    private static final int MAX_CACHED_TEXTURES = 64;
+    private static final Map<ResourceLocation, Object> loadedTextures = new LinkedHashMap<>();
     private static final Map<String, CompletableFuture<ResourceLocation>> loadingTextures = new HashMap<>();
-    private static final Map<String, Boolean> triedSkins = new HashMap<>();
-    private static final Map<String, ResourceLocation> nameCache = new HashMap<>();
-    private static final Map<String, ResourceLocation> uuidCache = new HashMap<>();
+    private static final Map<String, Boolean> triedSkins = new LinkedHashMap<>();
+    private static final Map<String, ResourceLocation> nameCache = new LinkedHashMap<>();
+    private static final Map<String, ResourceLocation> uuidCache = new LinkedHashMap<>();
 
     public static CompletableFuture<ResourceLocation> loadSkinForPlayer(String playerName) {
         return loadSkinForPlayer(playerName, null);
@@ -107,6 +109,36 @@ public class SkinTextureManager {
                 DynamicTexture tex = new DynamicTexture(image);
                 mc.getTextureManager().register(texId, tex);
                 loadedTextures.put(texId, tex);
+                trimLoadedTextures(mc);
+            }
+        }
+    }
+
+    private static void trimLoadedTextures(Minecraft mc) {
+        while (loadedTextures.size() > MAX_CACHED_TEXTURES) {
+            var it = loadedTextures.entrySet().iterator();
+            if (!it.hasNext()) break;
+            var entry = it.next();
+            mc.getTextureManager().release(entry.getKey());
+            it.remove();
+        }
+    }
+
+    public static void cleanupByPlayerName(String playerName) {
+        if (playerName == null || playerName.isEmpty()) return;
+        String lower = playerName.toLowerCase();
+        triedSkins.remove(lower);
+        loadingTextures.remove(lower);
+        nameCache.remove(lower);
+    }
+
+    public static void releaseTexture(ResourceLocation texId) {
+        if (texId == null) return;
+        Minecraft mc = Minecraft.getInstance();
+        synchronized (loadedTextures) {
+            if (loadedTextures.containsKey(texId)) {
+                mc.getTextureManager().release(texId);
+                loadedTextures.remove(texId);
             }
         }
     }

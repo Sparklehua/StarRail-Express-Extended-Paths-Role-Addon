@@ -24,10 +24,11 @@ import org.agmas.pathsrole.content.item.ShipperPistolItem;
 import org.agmas.pathsrole.content.item.SpellCardItem;
 import org.agmas.pathsrole.content.item.CaneItem;
 import org.agmas.pathsrole.content.item.ShipperMomentRevolverItem;
-import org.agmas.pathsrole.content.item.ShrineEntranceItem;
 import org.agmas.pathsrole.content.item.ShrineItem;
 import org.agmas.pathsrole.content.item.TargetRevolverItem;
 import org.agmas.pathsrole.content.item.WantedPosterItem;
+import org.agmas.pathsrole.content.item.SheerHeartAttackItem;
+import org.agmas.pathsrole.content.item.DetonateButtonItem;
 import org.agmas.pathsrole.init.ModBlocks;
 
 public class ModItems {
@@ -43,7 +44,6 @@ public class ModItems {
     public static final AsIWriteItem AS_I_WRITE = new AsIWriteItem(new Item.Properties().stacksTo(1));
     public static final SpellCardItem REIMU_SPELL_CARD = new SpellCardItem(new Item.Properties().stacksTo(1));
     public static final ShrineItem SHRINE = new ShrineItem(new Item.Properties().stacksTo(1));
-    public static final ShrineEntranceItem SHRINE_ENTRANCE = new ShrineEntranceItem(new Item.Properties().stacksTo(1));
     public static final BroomItem BROOM = new BroomItem(new Item.Properties().durability(3));
     public static final BanListItem BAN_LIST = new BanListItem(new Item.Properties().stacksTo(1));
     public static final PeepingEyeItem PEEPING_EYE = new PeepingEyeItem(new Item.Properties().stacksTo(1));
@@ -53,6 +53,8 @@ public class ModItems {
     public static final Item BOWL = new Item(new Item.Properties().stacksTo(1));
     public static final Item CANE = new CaneItem(new Item.Properties().durability(3));
     public static final PlayerDollItem PLAYER_DOLL = new PlayerDollItem(ModBlocks.PLAYER_DOLL, new Item.Properties().stacksTo(16));
+    public static final SheerHeartAttackItem KIRA_SHEER_HEART_ATTACK = new SheerHeartAttackItem(new Item.Properties().stacksTo(1));
+    public static final DetonateButtonItem DETONATE_BUTTON = new DetonateButtonItem(new Item.Properties().stacksTo(1));
 
     public static final ResourceKey<CreativeModeTab> FLOWER_ROLE_ITEMS_KEY = ResourceKey.create(
         Registries.CREATIVE_MODE_TAB,
@@ -83,6 +85,8 @@ public class ModItems {
             output.accept(BEGGING_BOWL);
             output.accept(BOWL);
             output.accept(CANE);
+            output.accept(KIRA_SHEER_HEART_ATTACK);
+            output.accept(DETONATE_BUTTON);
         })
         .build();
 
@@ -99,7 +103,6 @@ public class ModItems {
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "as_i_write"), AS_I_WRITE);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "reimu_spell_card"), REIMU_SPELL_CARD);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "shrine"), SHRINE);
-        Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "shrine_entrance"), SHRINE_ENTRANCE);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "broom"), BROOM);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "ban_list"), BAN_LIST);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "peeping_eye"), PEEPING_EYE);
@@ -109,6 +112,8 @@ public class ModItems {
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "bowl"), BOWL);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "cane"), CANE);
         Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "player_doll"), PLAYER_DOLL);
+        Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "kira_sheer_heart_attack"), KIRA_SHEER_HEART_ATTACK);
+        Registry.register(BuiltInRegistries.ITEM, ResourceLocation.fromNamespaceAndPath("pathsrole", "detonate_button"), DETONATE_BUTTON);
         Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, FLOWER_ROLE_ITEMS_KEY, FLOWER_ROLE_ITEMS);
     }
 }

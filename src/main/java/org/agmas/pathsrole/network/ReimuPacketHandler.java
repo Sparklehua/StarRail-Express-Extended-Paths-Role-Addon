@@ -34,7 +34,7 @@ public class ReimuPacketHandler {
             if (player == null || player.level().isClientSide()) {
                 return;
             }
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get((Object)player.level());
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent)SREGameWorldComponent.KEY.get(player.level());
             if (gameWorld == null || !gameWorld.isRunning() || !gameWorld.isRole((Player)player, ModRoles.REIMU)) {
                 return;
             }
@@ -79,7 +79,7 @@ public class ReimuPacketHandler {
             if (player == null || player.level().isClientSide()) {
                 return;
             }
-            SREGameWorldComponent gameWorld = (SREGameWorldComponent) SREGameWorldComponent.KEY.get((Object) player.level());
+            SREGameWorldComponent gameWorld = (SREGameWorldComponent) SREGameWorldComponent.KEY.get( player.level());
             if (gameWorld == null || !gameWorld.isRunning() || !gameWorld.isRole((Player) player, ModRoles.REIMU)) {
                 return;
             }

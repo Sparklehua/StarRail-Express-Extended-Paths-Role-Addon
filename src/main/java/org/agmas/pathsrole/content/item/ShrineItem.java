@@ -10,7 +10,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import io.wifi.starrailexpress.cca.SREGameWorldComponent;
 import net.minecraft.world.level.Level;
-import org.agmas.noellesroles.game.roles.innocence.fool.ShrineManager;
 import org.agmas.noellesroles.game.roles.innocence.fool.ShrineSequence;
 import org.agmas.pathsrole.init.ModRoles;
 
@@ -55,27 +54,7 @@ public class ShrineItem extends Item {
         }
 
         if (phase == ShrineSequence.Phase.ACTIVE) {
-            long now = System.currentTimeMillis();
-
-            if (reimuCooldownEnd > 0 && now < reimuCooldownEnd) {
-                long remaining = (reimuCooldownEnd - now) / 1000;
-                serverPlayer.displayClientMessage(Component.literal("§c冷却中，剩余 " + remaining + " 秒"), true);
-                return InteractionResultHolder.success(stack);
-            }
-
-            boolean inShrine = ShrineManager.isInShrine(serverPlayer);
-
-            if (inShrine) {
-                ShrineSequence.removeShrineEntranceEffects(serverPlayer);
-                ShrineManager.leaveShrine(serverPlayer);
-                reimuCooldownEnd = now + REIMU_COOLDOWN_MS;
-                serverPlayer.displayClientMessage(Component.literal("§a已离开神社"), true);
-            } else {
-                ShrineSequence.applyShrineEntranceEffects(serverPlayer);
-                ShrineManager.enterShrine(serverPlayer);
-                serverPlayer.displayClientMessage(Component.literal("§a已进入神社"), true);
-            }
-
+            serverPlayer.displayClientMessage(Component.literal("§c神社正在进行中"), true);
             return InteractionResultHolder.success(stack);
         }
 

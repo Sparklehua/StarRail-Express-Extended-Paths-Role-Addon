@@ -52,9 +52,8 @@ public class DollCraftScreen extends Screen {
     private static final int ROW_H = 22;
     private static final int GAP = 4;
 
-    // 每行布局：标题(50px) + [-][BOX][+] + 间距 + [-][BOX][+] + 间距 + [-][BOX][+]
     private static final int TITLE_W = 50;
-    private static final int AXIS_GROUP_W = BTN + BOX_W + BTN;  // 50px
+    private static final int AXIS_GROUP_W = BTN + BOX_W + BTN;
     private static final int AXIS_GAP = 6;
     private static final int AXIS_START_X = PANEL_X + TITLE_W;
 
@@ -67,6 +66,16 @@ public class DollCraftScreen extends Screen {
     static final PreviewItem DUMMY = new PreviewItem();
     static final DollPreviewModel PREVIEW_MODEL = new DollPreviewModel();
 
+    private static String persistedPlayerName = "";
+    private static String persistedSize = "1.0";
+    private static String persistedHeadRX = "0", persistedHeadRY = "0", persistedHeadRZ = "0";
+    private static String persistedRaRX = "0", persistedRaRY = "0", persistedRaRZ = "0";
+    private static String persistedLaRX = "0", persistedLaRY = "0", persistedLaRZ = "0";
+    private static String persistedRlRX = "0", persistedRlRY = "0", persistedRlRZ = "0";
+    private static String persistedRlPX = "0", persistedRlPY = "0", persistedRlPZ = "0";
+    private static String persistedLlRX = "0", persistedLlRY = "0", persistedLlRZ = "0";
+    private static String persistedLlPX = "0", persistedLlPY = "0", persistedLlPZ = "0";
+
     private EditBox nameInput;
     private EditBox sizeInput;
 
@@ -74,7 +83,9 @@ public class DollCraftScreen extends Screen {
     private EditBox raRX, raRY, raRZ;
     private EditBox laRX, laRY, laRZ;
     private EditBox rlRX, rlRY, rlRZ;
+    private EditBox rlPX, rlPY, rlPZ;
     private EditBox llRX, llRY, llRZ;
+    private EditBox llPX, llPY, llPZ;
 
     private DollItemSelectScreen.ItemSelectionResult carriedItem = DollItemSelectScreen.ItemSelectionResult.EMPTY;
     private Button carryButton;
@@ -83,7 +94,7 @@ public class DollCraftScreen extends Screen {
     private final Random rnd = new Random();
     private float time = 0f;
 
-    private float previewRotY = 150f;
+    private float previewRotY = 180f;
     private float previewRotX = 10f;
     private boolean isDragging = false;
 
@@ -91,8 +102,71 @@ public class DollCraftScreen extends Screen {
         super(Component.translatable("screen.pathsrole.doll_craft"));
     }
 
+    private void savePersistedData() {
+        if (nameInput != null) persistedPlayerName = nameInput.getValue();
+        if (sizeInput != null) persistedSize = sizeInput.getValue();
+        if (headRX != null) persistedHeadRX = headRX.getValue();
+        if (headRY != null) persistedHeadRY = headRY.getValue();
+        if (headRZ != null) persistedHeadRZ = headRZ.getValue();
+        if (raRX != null) persistedRaRX = raRX.getValue();
+        if (raRY != null) persistedRaRY = raRY.getValue();
+        if (raRZ != null) persistedRaRZ = raRZ.getValue();
+        if (laRX != null) persistedLaRX = laRX.getValue();
+        if (laRY != null) persistedLaRY = laRY.getValue();
+        if (laRZ != null) persistedLaRZ = laRZ.getValue();
+        if (rlRX != null) persistedRlRX = rlRX.getValue();
+        if (rlRY != null) persistedRlRY = rlRY.getValue();
+        if (rlRZ != null) persistedRlRZ = rlRZ.getValue();
+        if (rlPX != null) persistedRlPX = rlPX.getValue();
+        if (rlPY != null) persistedRlPY = rlPY.getValue();
+        if (rlPZ != null) persistedRlPZ = rlPZ.getValue();
+        if (llRX != null) persistedLlRX = llRX.getValue();
+        if (llRY != null) persistedLlRY = llRY.getValue();
+        if (llRZ != null) persistedLlRZ = llRZ.getValue();
+        if (llPX != null) persistedLlPX = llPX.getValue();
+        if (llPY != null) persistedLlPY = llPY.getValue();
+        if (llPZ != null) persistedLlPZ = llPZ.getValue();
+    }
+
+    public static void clearPersistedData() {
+        persistedPlayerName = "";
+        persistedSize = "1.0";
+        persistedHeadRX = "0"; persistedHeadRY = "0"; persistedHeadRZ = "0";
+        persistedRaRX = "0"; persistedRaRY = "0"; persistedRaRZ = "0";
+        persistedLaRX = "0"; persistedLaRY = "0"; persistedLaRZ = "0";
+        persistedRlRX = "0"; persistedRlRY = "0"; persistedRlRZ = "0";
+        persistedRlPX = "0"; persistedRlPY = "0"; persistedRlPZ = "0";
+        persistedLlRX = "0"; persistedLlRY = "0"; persistedLlRZ = "0";
+        persistedLlPX = "0"; persistedLlPY = "0"; persistedLlPZ = "0";
+    }
+
     @Override
     protected void init() {
+        forceScale4();
+        String prevName = nameInput != null ? nameInput.getValue() : persistedPlayerName;
+        String prevSize = sizeInput != null ? sizeInput.getValue() : persistedSize;
+        String prevHeadRX = headRX != null ? headRX.getValue() : persistedHeadRX;
+        String prevHeadRY = headRY != null ? headRY.getValue() : persistedHeadRY;
+        String prevHeadRZ = headRZ != null ? headRZ.getValue() : persistedHeadRZ;
+        String prevRaRX  = raRX  != null ? raRX.getValue()  : persistedRaRX;
+        String prevRaRY  = raRY  != null ? raRY.getValue()  : persistedRaRY;
+        String prevRaRZ  = raRZ  != null ? raRZ.getValue()  : persistedRaRZ;
+        String prevLaRX  = laRX  != null ? laRX.getValue()  : persistedLaRX;
+        String prevLaRY  = laRY  != null ? laRY.getValue()  : persistedLaRY;
+        String prevLaRZ  = laRZ  != null ? laRZ.getValue()  : persistedLaRZ;
+        String prevRlRX  = rlRX  != null ? rlRX.getValue()  : persistedRlRX;
+        String prevRlRY  = rlRY  != null ? rlRY.getValue()  : persistedRlRY;
+        String prevRlRZ  = rlRZ  != null ? rlRZ.getValue()  : persistedRlRZ;
+        String prevRlPX  = rlPX  != null ? rlPX.getValue()  : persistedRlPX;
+        String prevRlPY  = rlPY  != null ? rlPY.getValue()  : persistedRlPY;
+        String prevRlPZ  = rlPZ  != null ? rlPZ.getValue()  : persistedRlPZ;
+        String prevLlRX  = llRX  != null ? llRX.getValue()  : persistedLlRX;
+        String prevLlRY  = llRY  != null ? llRY.getValue()  : persistedLlRY;
+        String prevLlRZ  = llRZ  != null ? llRZ.getValue()  : persistedLlRZ;
+        String prevLlPX  = llPX  != null ? llPX.getValue()  : persistedLlPX;
+        String prevLlPY  = llPY  != null ? llPY.getValue()  : persistedLlPY;
+        String prevLlPZ  = llPZ  != null ? llPZ.getValue()  : persistedLlPZ;
+
         super.init();
         initBubbles();
 
@@ -100,47 +174,63 @@ public class DollCraftScreen extends Screen {
 
         // 玩家名称行
         nameInput = makeEditBox(PANEL_X + 76, y, 100, "输入正版玩家名...");
+        if (!prevName.isEmpty()) nameInput.setValue(prevName);
         addRenderableWidget(Button.builder(Component.literal("刷新"), b -> refreshSkin())
                 .bounds(PANEL_X + 180, y, 38, 16).build());
         y += ROW_H + GAP + 8;
 
         // 大小比例行
         sizeInput = makeEditBox(PANEL_X + 76, y, 56, "1.0");
-        sizeInput.setValue("1.0");
+        sizeInput.setValue(prevSize);
         sizeInput.setFilter(s -> s.matches("[0-9.]*") && s.length() <= 5);
         y += ROW_H + GAP + 8;
 
         // 携带物品按钮
-        String btnText = carriedItem != null && !carriedItem.isEmpty()
-                ? carriedItem.itemId().getPath() : "携带物品";
-        carryButton = Button.builder(Component.literal(btnText), b -> openItemSelect())
+        carryButton = Button.builder(Component.literal("携带物品"), b -> openItemSelect())
                 .bounds(PANEL_X + 8, y, PANEL_W - 16, 22).build();
-        addRenderableWidget(carryButton);
+        if (minecraft.player != null && minecraft.player.hasPermissions(2)) {
+            addRenderableWidget(carryButton);
+        }
         y += ROW_H + GAP + 10;
 
         // 头部旋转
-        EditBox[] hr = makeAxisRow(y);
+        EditBox[] hr = makeAxisRow(y, 5f);
         headRX = hr[0]; headRY = hr[1]; headRZ = hr[2];
+        headRX.setValue(prevHeadRX); headRY.setValue(prevHeadRY); headRZ.setValue(prevHeadRZ);
         y += ROW_H + GAP;
 
         // 右手
-        EditBox[] rar = makeAxisRow(y);
+        EditBox[] rar = makeAxisRow(y, 5f);
         raRX = rar[0]; raRY = rar[1]; raRZ = rar[2];
+        raRX.setValue(prevRaRX); raRY.setValue(prevRaRY); raRZ.setValue(prevRaRZ);
         y += ROW_H + GAP;
 
         // 左手
-        EditBox[] lar = makeAxisRow(y);
+        EditBox[] lar = makeAxisRow(y, 5f);
         laRX = lar[0]; laRY = lar[1]; laRZ = lar[2];
+        laRX.setValue(prevLaRX); laRY.setValue(prevLaRY); laRZ.setValue(prevLaRZ);
         y += ROW_H + GAP;
 
-        // 右腿
-        EditBox[] rlr = makeAxisRow(y);
+        // 右腿旋转
+        EditBox[] rlr = makeAxisRow(y, 5f);
         rlRX = rlr[0]; rlRY = rlr[1]; rlRZ = rlr[2];
+        rlRX.setValue(prevRlRX); rlRY.setValue(prevRlRY); rlRZ.setValue(prevRlRZ);
+        y += ROW_H + GAP;
+        // 右腿位置
+        EditBox[] rlp = makeAxisRow(y, 0.1f);
+        rlPX = rlp[0]; rlPY = rlp[1]; rlPZ = rlp[2];
+        rlPX.setValue(prevRlPX); rlPY.setValue(prevRlPY); rlPZ.setValue(prevRlPZ);
         y += ROW_H + GAP;
 
-        // 左腿
-        EditBox[] llr = makeAxisRow(y);
+        // 左腿旋转
+        EditBox[] llr = makeAxisRow(y, 5f);
         llRX = llr[0]; llRY = llr[1]; llRZ = llr[2];
+        llRX.setValue(prevLlRX); llRY.setValue(prevLlRY); llRZ.setValue(prevLlRZ);
+        y += ROW_H + GAP;
+        // 左腿位置
+        EditBox[] llp = makeAxisRow(y, 0.1f);
+        llPX = llp[0]; llPY = llp[1]; llPZ = llp[2];
+        llPX.setValue(prevLlPX); llPY.setValue(prevLlPY); llPZ.setValue(prevLlPZ);
         y += ROW_H + GAP + 10;
 
         // 制作按钮
@@ -149,18 +239,57 @@ public class DollCraftScreen extends Screen {
                 b -> onCraft())
                 .bounds(PANEL_X + PANEL_W / 2 - 44, y, 88, 24).build());
 
+        // 左下角清除数据按钮
+        addRenderableWidget(Button.builder(
+                Component.translatable("screen.pathsrole.doll_craft.clear_data"),
+                b -> clearAllData())
+                .bounds(PANEL_X + 4, y, 70, 24).build());
+
         // 返回和关闭按钮
         addRenderableWidget(Button.builder(Component.literal("←"), b -> onClose())
                 .bounds(6, 4, 18, 18).build());
-        addRenderableWidget(Button.builder(Component.literal(""), b -> minecraft.setScreen(null))
+        addRenderableWidget(Button.builder(Component.literal("✕"), b -> minecraft.setScreen(null))
                 .bounds(width - 22, 4, 18, 18).build());
     }
 
+    private void clearAllData() {
+        clearPersistedData();
+        if (nameInput != null) nameInput.setValue("");
+        if (sizeInput != null) sizeInput.setValue("1.0");
+        if (headRX != null) headRX.setValue("0");
+        if (headRY != null) headRY.setValue("0");
+        if (headRZ != null) headRZ.setValue("0");
+        if (raRX != null) raRX.setValue("0");
+        if (raRY != null) raRY.setValue("0");
+        if (raRZ != null) raRZ.setValue("0");
+        if (laRX != null) laRX.setValue("0");
+        if (laRY != null) laRY.setValue("0");
+        if (laRZ != null) laRZ.setValue("0");
+        if (rlRX != null) rlRX.setValue("0");
+        if (rlRY != null) rlRY.setValue("0");
+        if (rlRZ != null) rlRZ.setValue("0");
+        if (rlPX != null) rlPX.setValue("0");
+        if (rlPY != null) rlPY.setValue("0");
+        if (rlPZ != null) rlPZ.setValue("0");
+        if (llRX != null) llRX.setValue("0");
+        if (llRY != null) llRY.setValue("0");
+        if (llRZ != null) llRZ.setValue("0");
+        if (llPX != null) llPX.setValue("0");
+        if (llPY != null) llPY.setValue("0");
+        if (llPZ != null) llPZ.setValue("0");
+        previewTexture = STEVE;
+        carriedItem = DollItemSelectScreen.ItemSelectionResult.EMPTY;
+        if (carryButton != null) {
+            carryButton.setMessage(Component.literal("携带物品"));
+        }
+    }
+
     private void openItemSelect() {
+        savePersistedData();
         PreviewState state = buildPreviewState();
         var screen = new DollItemSelectScreen(state, this, result -> {
             carriedItem = result;
-            if (!result.isEmpty()) {
+            if (!result.isEmpty() && carryButton != null) {
                 carryButton.setMessage(Component.literal(result.itemId().getPath()));
             }
             Minecraft.getInstance().setScreen(DollCraftScreen.this);
@@ -175,7 +304,9 @@ public class DollCraftScreen extends Screen {
                 getFloat(raRX, 0) * r, getFloat(raRY, 0) * r, getFloat(raRZ, 0) * r,
                 getFloat(laRX, 0) * r, getFloat(laRY, 0) * r, getFloat(laRZ, 0) * r,
                 getFloat(rlRX, 0) * r, getFloat(rlRY, 0) * r, getFloat(rlRZ, 0) * r,
+                getFloat(rlPX, 0), getFloat(rlPY, 0), getFloat(rlPZ, 0),
                 getFloat(llRX, 0) * r, getFloat(llRY, 0) * r, getFloat(llRZ, 0) * r,
+                getFloat(llPX, 0), getFloat(llPY, 0), getFloat(llPZ, 0),
         };
         return new PreviewState(previewTexture, bones, previewRotY, previewRotX, clampSize());
     }
@@ -191,7 +322,9 @@ public class DollCraftScreen extends Screen {
         setBox(raRX, b[3] * d); setBox(raRY, b[4] * d); setBox(raRZ, b[5] * d);
         setBox(laRX, b[6] * d); setBox(laRY, b[7] * d); setBox(laRZ, b[8] * d);
         setBox(rlRX, b[9] * d); setBox(rlRY, b[10] * d); setBox(rlRZ, b[11] * d);
-        setBox(llRX, b[12] * d); setBox(llRY, b[13] * d); setBox(llRZ, b[14] * d);
+        if (b.length > 11) { setBox(rlPX, b[12]); setBox(rlPY, b[13]); setBox(rlPZ, b[14]); }
+        if (b.length > 14) { setBox(llRX, b[15] * d); setBox(llRY, b[16] * d); setBox(llRZ, b[17] * d); }
+        if (b.length > 17) { setBox(llPX, b[18]); setBox(llPY, b[19]); setBox(llPZ, b[20]); }
         sizeInput.setValue(fmt(state.scale()));
     }
 
@@ -208,8 +341,7 @@ public class DollCraftScreen extends Screen {
         return eb;
     }
 
-    private EditBox[] makeAxisRow(int baseY) {
-        float step = 5f;
+    private EditBox[] makeAxisRow(int baseY, float step) {
         int x = AXIS_START_X;
 
         return new EditBox[] {
@@ -264,13 +396,16 @@ public class DollCraftScreen extends Screen {
         String name = nameInput.getValue().trim();
         if (name.isEmpty())
             return;
+        savePersistedData();
         float r = (float) Math.PI / 180f;
         float[] boneData = new float[] {
                 getFloat(headRX, 0) * r, getFloat(headRY, 0) * r, getFloat(headRZ, 0) * r,
                 getFloat(raRX, 0) * r, getFloat(raRY, 0) * r, getFloat(raRZ, 0) * r,
                 getFloat(laRX, 0) * r, getFloat(laRY, 0) * r, getFloat(laRZ, 0) * r,
                 getFloat(rlRX, 0) * r, getFloat(rlRY, 0) * r, getFloat(rlRZ, 0) * r,
+                getFloat(rlPX, 0), getFloat(rlPY, 0), getFloat(rlPZ, 0),
                 getFloat(llRX, 0) * r, getFloat(llRY, 0) * r, getFloat(llRZ, 0) * r,
+                getFloat(llPX, 0), getFloat(llPY, 0), getFloat(llPZ, 0),
                 clampSize(),
         };
         String handId = carriedItem != null && !carriedItem.isEmpty() ? carriedItem.itemId().toString() : null;
@@ -309,11 +444,18 @@ public class DollCraftScreen extends Screen {
 
     @Override
     public void render(GuiGraphics g, int mx, int my, float d) {
+        double es = extraScale();
+        forceScale4();
+        int adjMX = (int) (mx / es);
+        int adjMY = (int) (my / es);
+        g.pose().pushPose();
+        g.pose().scale((float) es, (float) es, 1.0f);
         renderBg(g);
         renderBubbles(g);
-        super.render(g, mx, my, d);
+        super.render(g, adjMX, adjMY, d);
         renderUI(g);
         renderPreview(g);
+        g.pose().popPose();
     }
 
     private void renderBg(GuiGraphics g) {
@@ -379,7 +521,16 @@ public class DollCraftScreen extends Screen {
         y = boneSection(g, "右  手", y);
         y = boneSection(g, "左  手", y);
         y = boneSection(g, "右  腿", y);
+        y = legPosSection(g, y);
         y = boneSection(g, "左  腿", y);
+        y = legPosSection(g, y);
+    }
+
+    private int legPosSection(GuiGraphics g, int y) {
+        g.drawString(font, "位置", PANEL_X + 28, y + 4, 0xFFCCAA66);
+        drawAxisLabels(g, y);
+        y += ROW_H + GAP;
+        return y;
     }
 
     private int boneSection(GuiGraphics g, String title, int y) {
@@ -453,7 +604,7 @@ public class DollCraftScreen extends Screen {
         ItemStack stack = new ItemStack(item);
         float[] t = carriedItem.toTransformArray();
         ps.pushPose();
-        ps.translate(2.0 + t[3], 2.2 + t[4], t[5]);
+        ps.translate(t[3], t[4], t[5]);
         ps.scale(0.45f, 0.45f, 0.45f);
         ps.mulPose(new Quaternionf().rotateX((float) Math.toRadians(t[0])));
         ps.mulPose(new Quaternionf().rotateY((float) Math.toRadians(t[1])));
@@ -509,8 +660,12 @@ public class DollCraftScreen extends Screen {
                 getFloat(laRX, 0) * r, getFloat(laRY, 0) * r, getFloat(laRZ, 0) * r);
         setBone(model, "RightLeg",
                 getFloat(rlRX, 0) * r, getFloat(rlRY, 0) * r, getFloat(rlRZ, 0) * r);
+        setBonePosition(model, "RightLeg",
+                getFloat(rlPX, 0), getFloat(rlPY, 0), getFloat(rlPZ, 0));
         setBone(model, "LeftLeg",
                 getFloat(llRX, 0) * r, getFloat(llRY, 0) * r, getFloat(llRZ, 0) * r);
+        setBonePosition(model, "LeftLeg",
+                getFloat(llPX, 0), getFloat(llPY, 0), getFloat(llPZ, 0));
     }
 
     private static void setBone(BakedGeoModel model, String name,
@@ -522,13 +677,24 @@ public class DollCraftScreen extends Screen {
         });
     }
 
+    private static void setBonePosition(BakedGeoModel model, String name,
+                                         float px, float py, float pz) {
+        model.getBone(name).ifPresent(b -> {
+            b.setPosX(px);
+            b.setPosY(py);
+            b.setPosZ(pz);
+        });
+    }
+
     private float clampSize() {
         return Mth.clamp(getFloat(sizeInput, 1f), 0.1f, 3.0f);
     }
 
     private static float getFloat(EditBox eb, float def) {
         try {
-            return Float.parseFloat(eb.getValue().isEmpty() ? String.valueOf(def) : eb.getValue());
+            float v = Float.parseFloat(eb.getValue().isEmpty() ? String.valueOf(def) : eb.getValue());
+            if (Float.isNaN(v) || Float.isInfinite(v)) return def;
+            return v;
         } catch (NumberFormatException e) {
             return def;
         }
@@ -606,8 +772,25 @@ public class DollCraftScreen extends Screen {
         return mx >= RIGHT_X && mx <= RIGHT_X + rw && my >= TOP - 4 && my <= TOP - 4 + rh;
     }
 
+    private void forceScale4() {
+        var window = Minecraft.getInstance().getWindow();
+        this.width = Math.max(window.getWidth() / 4, 1);
+        this.height = Math.max(window.getHeight() / 4, 1);
+    }
+
+    @Override
+    public void repositionElements() {
+        super.repositionElements();
+        forceScale4();
+    }
+
+    private double extraScale() {
+        return 4.0 / Minecraft.getInstance().getWindow().getGuiScale();
+    }
+
     @Override
     public void onClose() {
+        savePersistedData();
         if (minecraft != null)
             minecraft.setScreen(new AsIWriteScreen());
     }

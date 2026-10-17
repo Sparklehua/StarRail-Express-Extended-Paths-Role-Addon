@@ -15,7 +15,7 @@ public record PreviewState(
             ResourceLocation.withDefaultNamespace("textures/entity/player/wide/steve.png");
 
     public static PreviewState createDefault() {
-        return new PreviewState(STEVE, new float[15], 150f, 10f, 1.0f);
+        return new PreviewState(STEVE, new float[21], 150f, 10f, 1.0f);
     }
 
     public PreviewState withTexture(ResourceLocation tex) {

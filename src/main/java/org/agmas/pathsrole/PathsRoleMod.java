@@ -15,6 +15,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -31,13 +32,14 @@ import org.agmas.pathsrole.command.ForceReadyAreaCommand;
 import org.agmas.pathsrole.command.ForceSpawnPosCommand;
 import org.agmas.pathsrole.command.HiddenRoleCommand;
 import org.agmas.pathsrole.command.MimiCommand;
+import org.agmas.pathsrole.command.PigFormCommand;
 import org.agmas.pathsrole.command.ShionBowlCommand;
 import org.agmas.pathsrole.command.ShionDebtCommand;
 import org.agmas.pathsrole.command.ShrineExportCommand;
 import org.agmas.pathsrole.command.ShrineGhostCommand;
-
 import org.agmas.pathsrole.content.block.DonationBoxTickHandler;
 import org.agmas.pathsrole.content.entity.FlowerDollExplosionManager;
+import org.agmas.harpymodloader.Harpymodloader;
 import org.agmas.pathsrole.content.item.BroomItem;
 import org.agmas.pathsrole.game.roles.paths.equilibrium.reimu.PeepingEyeEvents;
 import org.agmas.pathsrole.game.roles.paths.equilibrium.reimu.ReimuEvents;
@@ -45,6 +47,7 @@ import org.agmas.pathsrole.game.roles.paths.equilibrium.reimu.ReimuShopHandler;
 import org.agmas.pathsrole.game.roles.paths.elation.shipper.ShipperEvents;
 import org.agmas.pathsrole.game.roles.paths.elation.shipper.ShipperPlayerComponent;
 import org.agmas.pathsrole.game.roles.paths.elation.shipper.ShipperShopHandler;
+import org.agmas.pathsrole.game.roles.paths.elation.kira.KiraShopHandler;
 import org.agmas.pathsrole.game.roles.paths.the_hunt.bountyhunter.BountyHunterEvents;
 import org.agmas.pathsrole.game.roles.paths.the_hunt.bountyhunter.BountyHunterShopHandler;
 import org.agmas.pathsrole.game.roles.paths.nihility.shion.ShionEvents;
@@ -55,8 +58,10 @@ import org.agmas.pathsrole.init.ModEntities;
 import org.agmas.pathsrole.init.ModItems;
 import org.agmas.pathsrole.init.ModModifiers;
 import org.agmas.pathsrole.init.ModRoles;
+import org.agmas.pathsrole.init.ModSounds;
 import org.agmas.pathsrole.util.GameProfileHelper;
 import org.agmas.pathsrole.network.PlayerVisibilityStatePayload;
+import org.agmas.pathsrole.network.PacketHandler;
 import org.agmas.pathsrole.network.ReimuPacketHandler;
 import org.agmas.pathsrole.network.ReimuShieldBreakPacket;
 import org.agmas.pathsrole.network.ShrineGhostStartPayload;
@@ -67,32 +72,49 @@ import org.agmas.pathsrole.network.WantedPosterSignC2SPacket;
 import org.agmas.pathsrole.network.BeggingRequestPayload;
 import org.agmas.pathsrole.network.BeggingResponsePayload;
 import org.agmas.pathsrole.network.CraftDollPayload;
+import org.agmas.pathsrole.client.renderer.PlayerSkinUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pro.fazeclan.river.stupid_express.constants.SEModifiers;
 
+import java.util.Base64;
+import java.util.concurrent.ConcurrentHashMap;
+
 public class PathsRoleMod
 implements ModInitializer {
     public static final String MOD_ID = "pathsrole";
-    public static final Logger LOGGER = LoggerFactory.getLogger((String)"pathsrole");
+    public static final Logger LOGGER = LoggerFactory.getLogger("pathsrole");
+    public static final boolean SPARKITEM_LOADED = FabricLoader.getInstance().isModLoaded("litte_huaitem");
+    private static final ConcurrentHashMap<java.util.UUID, Long> craftCooldowns = new ConcurrentHashMap<>();
+    private static final long CRAFT_COOLDOWN_MS = 500;
 
     public void onInitialize() {
         LOGGER.info("Paths Role Mod loading...");
 
+        if (SPARKITEM_LOADED) {
+            LOGGER.warn("===========================================");
+            LOGGER.warn("[PathsRole] 检测到自制玩偶模组旧版本（litte_huaitem）模组已安装！");
+            LOGGER.warn("[PathsRole] 两个模组同时存在会导致玩偶功能冲突，可能出现BUG！");
+            LOGGER.warn("[PathsRole] 建议移出 litte_huaitem 以确保稳定性。");
+            LOGGER.warn("===========================================");
+        }
         ModModifiers.init();
         ModBlocks.init();
         ModBlockEntities.init();
         ModItems.init();
-        ShipperPlayerComponent.initSounds();
         ShipperPlayerComponent.initFadeTick();
         DropRules.canDropItem.add("pathsrole:wanted_poster");
         TMMItems.INVISIBLE_ITEMS.add(ModItems.SHIPPER_BOOK);
         TMMItems.INVISIBLE_ITEMS.add(ModItems.HUNT_TEMP_SHIELD);
         TMMItems.INVISIBLE_ITEMS.add(ModItems.PEEPING_EYE);
+        TMMItems.INVISIBLE_ITEMS.add(ModItems.KIRA_SHEER_HEART_ATTACK);
+        TMMItems.INVISIBLE_ITEMS.add(ModItems.DETONATE_BUTTON);
         ModEntities.init();
+        ModSounds.init();
         ModRoles.init();
         ReimuShopHandler.init();
         ReimuPacketHandler.register();
+        PacketHandler.register();
         PayloadTypeRegistry.playS2C().register(ReimuShieldBreakPacket.ID, ReimuShieldBreakPacket.CODEC);
         PayloadTypeRegistry.playS2C().register(ShrineGhostStartPayload.ID, ShrineGhostStartPayload.CODEC);
         PayloadTypeRegistry.playS2C().register(ShrinePurchaseCountSyncPayload.ID, ShrinePurchaseCountSyncPayload.CODEC);
@@ -110,64 +132,126 @@ implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(CraftDollPayload.TYPE, (payload, context) -> {
             var player = context.player();
             if (player == null) return;
-            context.server().execute(() -> {
-                String playerName = payload.playerName();
-                if (playerName == null || playerName.isEmpty()) return;
-                ItemStack doll = new ItemStack(ModItems.PLAYER_DOLL);
-                GameProfileHelper.savePlayerInfoToStack(doll, playerName);
 
-                float[] boneData = payload.boneData();
-                if (boneData != null && boneData.length > 0) {
-                    CustomData customData = doll.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY);
-                    CompoundTag tag = customData.copyTag();
-                    CompoundTag poses = new CompoundTag();
-                    for (int i = 0; i < boneData.length; i++) {
-                        poses.putFloat("b" + i, boneData[i]);
-                    }
-                    tag.put("Poses", poses);
+            long now = System.currentTimeMillis();
+            Long last = craftCooldowns.get(player.getUUID());
+            if (last != null && now - last < CRAFT_COOLDOWN_MS) {
+                return;
+            }
+            craftCooldowns.put(player.getUUID(), now);
 
-                    if (payload.hatItemId() != null && !payload.hatItemId().isEmpty()) {
-                        tag.putString("HatItem", payload.hatItemId());
-                        if (payload.hatTransform() != null && payload.hatTransform().length >= 6) {
-                            CompoundTag ht = new CompoundTag();
-                            ht.putFloat("rx", payload.hatTransform()[0]);
-                            ht.putFloat("ry", payload.hatTransform()[1]);
-                            ht.putFloat("rz", payload.hatTransform()[2]);
-                            ht.putFloat("px", payload.hatTransform()[3]);
-                            ht.putFloat("py", payload.hatTransform()[4]);
-                            ht.putFloat("pz", payload.hatTransform()[5]);
-                            tag.put("HatTransform", ht);
+            String playerName = payload.playerName();
+            if (playerName == null || playerName.isEmpty() || playerName.length() > 16) return;
+
+            float[] boneData = payload.boneData();
+            String hatItemId = payload.hatItemId();
+            float[] hatTransform = payload.hatTransform();
+            String handItemId = payload.handItemId();
+            float[] handTransform = payload.handTransform();
+
+            // 后台线程下载皮肤，不阻塞主线程
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                String skinUrl = null;
+                String skinData = null;
+                try {
+                    String url = PlayerSkinUtil.getSkinUrlForName(playerName).get(5, java.util.concurrent.TimeUnit.SECONDS);
+                    if (url != null && !url.isEmpty()) {
+                        byte[] bytes = PlayerSkinUtil.downloadSkinBytes(url).get(10, java.util.concurrent.TimeUnit.SECONDS);
+                        if (bytes != null && bytes.length > 0) {
+                            skinUrl = url;
+                            skinData = Base64.getEncoder().encodeToString(bytes);
                         }
                     }
-                    if (payload.handItemId() != null && !payload.handItemId().isEmpty()) {
-                        tag.putString("HandItem", payload.handItemId());
-                        if (payload.handTransform() != null && payload.handTransform().length >= 6) {
-                            CompoundTag ht = new CompoundTag();
-                            ht.putFloat("rx", payload.handTransform()[0]);
-                            ht.putFloat("ry", payload.handTransform()[1]);
-                            ht.putFloat("rz", payload.handTransform()[2]);
-                            ht.putFloat("px", payload.handTransform()[3]);
-                            ht.putFloat("py", payload.handTransform()[4]);
-                            ht.putFloat("pz", payload.handTransform()[5]);
-                            tag.put("HandTransform", ht);
-                        }
-                    }
-                    doll.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+                } catch (Exception e) {
+                    LOGGER.warn("Failed to download skin for doll '{}': {}", playerName, e.getMessage());
                 }
 
-                if (!player.getInventory().add(doll)) {
-                    player.drop(doll, false);
-                }
-                player.displayClientMessage(Component.translatable("message.pathsrole.doll_craft.success", playerName), false);
+                final String finalSkinUrl = skinUrl;
+                final String finalSkinData = skinData;
+
+                // 下载完成后回到服务端主线程创建玩偶
+                context.server().execute(() -> {
+                    try {
+                        ItemStack doll = new ItemStack(ModItems.PLAYER_DOLL);
+                        if (doll == null || doll.isEmpty()) return;
+
+                        ServerPlayer targetPlayer = context.server().getPlayerList().getPlayerByName(playerName);
+                        GameProfileHelper.savePlayerInfoToStack(doll, playerName,
+                                targetPlayer != null ? targetPlayer.getGameProfile() : null);
+
+                        if (finalSkinData != null) {
+                            CustomData existingCustomData = doll.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY);
+                            if (existingCustomData != null) {
+                                CompoundTag dollTag = existingCustomData.copyTag();
+                                if (dollTag != null) {
+                                    dollTag.putString("SkinData", finalSkinData);
+                                    dollTag.putString("SkinUrl", finalSkinUrl);
+                                    doll.set(DataComponents.CUSTOM_DATA, CustomData.of(dollTag));
+                                }
+                            }
+                        }
+
+                        if (boneData != null && boneData.length > 0 && boneData.length <= 30) {
+                            CustomData customData = doll.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY);
+                            if (customData == null) return;
+                            CompoundTag tag = customData.copyTag();
+                            if (tag == null) return;
+                            CompoundTag poses = new CompoundTag();
+                            for (int i = 0; i < boneData.length; i++) {
+                                float v = boneData[i];
+                                if (Float.isNaN(v) || Float.isInfinite(v)) v = 0f;
+                                v = net.minecraft.util.Mth.clamp(v, -1000f, 1000f);
+                                poses.putFloat("b" + i, v);
+                            }
+                            tag.put("Poses", poses);
+
+                            if (hatItemId != null && !hatItemId.isEmpty()
+                                    && hatItemId.length() <= 256) {
+                                tag.putString("HatItem", hatItemId);
+                                if (hatTransform != null && hatTransform.length >= 6) {
+                                    CompoundTag ht = writeTransformTag(hatTransform);
+                                    if (ht != null) tag.put("HatTransform", ht);
+                                }
+                            }
+                            if (handItemId != null && !handItemId.isEmpty()
+                                    && handItemId.length() <= 256) {
+                                tag.putString("HandItem", handItemId);
+                                if (handTransform != null && handTransform.length >= 6) {
+                                    CompoundTag ht = writeTransformTag(handTransform);
+                                    if (ht != null) tag.put("HandTransform", ht);
+                                }
+                            }
+                            doll.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+                        }
+
+                        if (!player.getInventory().add(doll)) {
+                            player.drop(doll, false);
+                        }
+                        player.displayClientMessage(Component.translatable("message.pathsrole.doll_craft.success", playerName), false);
+                    } catch (Exception e) {
+                        LOGGER.error("Failed to craft doll for player {}", playerName, e);
+                    }
+                });
             });
         });
         ServerTickEvents.START_SERVER_TICK.register(server -> ShrineSequence.tick());
-        ServerTickEvents.END_SERVER_TICK.register(server -> FlowerDollExplosionManager.tick(server));
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            FlowerDollExplosionManager.tick(server);
+            if (server.getTickCount() % 1200 == 0) {
+                cleanupCraftCooldowns();
+            }
+            if (server.getTickCount() % 20 == 0) {
+                int players = server.getPlayerList().getPlayerCount();
+                int maximum = players >= 12 ? 1 : 0;
+                Harpymodloader.setRoleMaximum(ModRoles.KIRA_ID, maximum);
+            }
+        });
         OnGameEnd.EVENT.register((serverLevel, gameWorldComponent) -> FlowerDollExplosionManager.onGameEnd(serverLevel));
         FlowerDollExplosionManager.registerEvents();
         ReimuEvents.registerEvents();
         ShipperShopHandler.init();
         ShipperEvents.registerEvents();
+        KiraShopHandler.init();
         BountyHunterShopHandler.init();
         BountyHunterEvents.registerEvents();
         ShionShopHandler.init();
@@ -178,6 +262,7 @@ implements ModInitializer {
         ForceSpawnPosCommand.register();
         HiddenRoleCommand.register();
         MimiCommand.register();
+        PigFormCommand.register();
         ShionBowlCommand.register();
         ShionDebtCommand.register();
         ShrineExportCommand.register();
@@ -189,11 +274,53 @@ implements ModInitializer {
         ShrineSequence.registerEvents();
         excludeShipperFromLoversModifier();
         registerBroomAttack();
+        registerSparkitemWarning();
         LOGGER.info("Paths Role Mod loaded!");
     }
 
     public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath((String)MOD_ID, (String)path);
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+    }
+
+    private static CompoundTag writeTransformTag(float[] transform) {
+        if (transform == null || transform.length < 6) return null;
+        CompoundTag ht = new CompoundTag();
+        for (int i = 0; i < 6; i++) {
+            float v = transform[i];
+            if (Float.isNaN(v) || Float.isInfinite(v)) v = 0f;
+            v = net.minecraft.util.Mth.clamp(v, -1000f, 1000f);
+            switch (i) {
+                case 0 -> ht.putFloat("rx", v);
+                case 1 -> ht.putFloat("ry", v);
+                case 2 -> ht.putFloat("rz", v);
+                case 3 -> ht.putFloat("px", v);
+                case 4 -> ht.putFloat("py", v);
+                case 5 -> ht.putFloat("pz", v);
+            }
+        }
+        return ht;
+    }
+
+    private static void cleanupCraftCooldowns() {
+        long threshold = System.currentTimeMillis() - CRAFT_COOLDOWN_MS;
+        craftCooldowns.values().removeIf(v -> v == null || v < threshold);
+    }
+
+    private static void registerSparkitemWarning() {
+        if (!SPARKITEM_LOADED) return;
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            var player = handler.getPlayer();
+            if (player != null) {
+                server.execute(() -> {
+                    player.displayClientMessage(
+                        Component.literal("§c§l[§ePathsRole§c§l] §c⚠ 警告：检测到自制玩偶模组旧版本（litte_huaitem）模组已安装！")
+                            .append(Component.literal("\n§7两个模组的玩偶功能会相互冲突，可能导致物品丢失、渲染错误等问题。"))
+                            .append(Component.literal("\n§7建议联系服主移出 litte_huaitem 模组。")),
+                        false
+                    );
+                });
+            }
+        });
     }
 
     private static void excludeShipperFromLoversModifier() {

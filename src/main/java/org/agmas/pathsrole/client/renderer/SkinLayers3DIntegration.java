@@ -126,7 +126,7 @@ public class SkinLayers3DIntegration {
         renderBoneMesh(poseStack, vc, meshes.rightArm, "RightArm", boneData, 3, light, overlay);
         renderBoneMesh(poseStack, vc, meshes.leftArm, "LeftArm", boneData, 6, light, overlay);
         renderBoneMesh(poseStack, vc, meshes.rightLeg, "RightLeg", boneData, 9, light, overlay);
-        renderBoneMesh(poseStack, vc, meshes.leftLeg, "LeftLeg", boneData, 12, light, overlay);
+        renderBoneMesh(poseStack, vc, meshes.leftLeg, "LeftLeg", boneData, 15, light, overlay);
     }
 
     private static void renderBoneMesh(PoseStack ps, VertexConsumer vc, Object mesh,
